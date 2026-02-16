@@ -1,0 +1,7 @@
+{
+  "name": "Crystal Clawz Social Studio V2",
+  "description": "AI-powered social media content creator focusing on compliant, brand-aligned posts.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

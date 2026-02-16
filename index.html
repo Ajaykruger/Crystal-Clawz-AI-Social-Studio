@@ -1,0 +1,115 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crystal Clawz Social Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              // Extending pink for specific brand shades if needed
+              pink: {
+                450: '#f472b6', // Between 400 and 500
+                950: '#4c0519', // Deep pink
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind Custom Utilities -->
+    <style type="text/tailwindcss">
+      @layer components {
+        .btn-primary {
+          @apply bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold shadow-lg shadow-pink-500/20 transition-all duration-200 active:scale-[0.98];
+        }
+        
+        .heading-page {
+          @apply text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white leading-tight;
+        }
+
+        .heading-section {
+          @apply text-lg font-bold tracking-tight text-gray-800 dark:text-gray-100;
+        }
+
+        .card-base {
+          @apply bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm rounded-2xl;
+        }
+      }
+    </style>
+
+    <style>
+      body { font-family: 'Inter', sans-serif; background-color: #f9fafb; /* gray-50 */ }
+      .dark body { background-color: #111827; /* gray-900 */ color: #f3f4f6; }
+      
+      /* Glassmorphism Utilities */
+      .glass {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+      }
+      .dark .glass {
+        background: rgba(17, 24, 39, 0.8);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .glass-sidebar {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-right: 1px solid rgba(255, 255, 255, 0.5);
+      }
+      .dark .glass-sidebar {
+        background: rgba(17, 24, 39, 0.85);
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .glass-card {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+      }
+      .dark .glass-card {
+        background: rgba(31, 41, 55, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+      }
+
+      /* Custom scrollbar for cleaner look */
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+      .dark ::-webkit-scrollbar-thumb { background: #374151; }
+      .dark ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.37.0",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "recharts": "https://esm.sh/recharts@^3.6.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
