@@ -1,5 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { User as FirebaseUser } from 'firebase/auth';
+import AuthGate from './components/AuthGate';
+import { authService } from './services/authService';
+import { firestoreService } from './services/firestoreService';
 import Sidebar from './components/Sidebar';
 import MobileNav from './components/MobileNav';
 import TopBar from './components/TopBar';
@@ -249,6 +253,12 @@ const initialDraft: DraftState = {
 };
 
 const App: React.FC = () => {
+  // Firebase auth state
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
+  // Prevents syncing stale/initial data back to Firestore on first load
+  const isDataLoaded = useRef(false);
+
   const [hasApiKey, setHasApiKey] = useState(false);
   const [isCheckingKey, setIsCheckingKey] = useState(true);
 
@@ -292,6 +302,53 @@ const App: React.FC = () => {
     } else {
       document.documentElement.classList.remove('dark');
     }
+  };
+
+  // Listen to Firebase auth — load workspace data when signed in
+  useEffect(() => {
+    const unsubscribe = authService.onAuthStateChanged(async (user) => {
+      setFirebaseUser(user);
+      if (user) {
+        // Update the app user from Firebase profile
+        setCurrentUser({
+          id: user.uid,
+          name: user.displayName || user.email?.split('@')[0] || 'Team Member',
+          email: user.email || '',
+          role: 'admin',
+          avatarUrl: user.photoURL || '',
+        });
+        // Load shared workspace data from Firestore
+        try {
+          const data = await firestoreService.load();
+          if (data) {
+            setAllDrafts(data.drafts);
+            setCalendarPosts(data.calendarPosts);
+            setReviewPosts(data.reviewPosts);
+          }
+        } catch (e) {
+          console.error('Failed to load workspace data from Firestore', e);
+        }
+        // Allow sync writes only after state has settled
+        setTimeout(() => { isDataLoaded.current = true; }, 600);
+      } else {
+        isDataLoaded.current = false;
+      }
+      setIsAuthChecking(false);
+    });
+    return unsubscribe;
+  }, []);
+
+  // Sync shared workspace state to Firestore whenever it changes
+  useEffect(() => {
+    if (!isDataLoaded.current || !firebaseUser) return;
+    firestoreService
+      .save({ drafts: allDrafts, calendarPosts, reviewPosts })
+      .catch((e) => console.error('Firestore sync failed', e));
+  }, [allDrafts, calendarPosts, reviewPosts, firebaseUser]);
+
+  const handleSignOut = async () => {
+    isDataLoaded.current = false;
+    await authService.signOut();
   };
 
   useEffect(() => {
@@ -496,6 +553,14 @@ const App: React.FC = () => {
     }
   };
 
+  if (isAuthChecking) {
+    return <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-400">Loading...</div>;
+  }
+
+  if (!firebaseUser) {
+    return <AuthGate onSignedIn={() => { /* onAuthStateChanged handles state update */ }} />;
+  }
+
   if (isCheckingKey) {
     return <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-400">Loading...</div>;
   }
@@ -506,14 +571,15 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900 dark:text-gray-100 font-sans relative transition-colors duration-300">
-      <Sidebar 
-        currentView={currentView} 
-        onChangeView={(v) => handleNavigate(v)} 
-        isOpen={isMobileMenuOpen} 
-        onClose={() => setIsMobileMenuOpen(false)} 
+      <Sidebar
+        currentView={currentView}
+        onChangeView={(v) => handleNavigate(v)}
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
         draftCount={allDrafts.length}
         reviewCount={reviewPosts.length}
         user={currentUser}
+        onSignOut={handleSignOut}
       />
       <div className="flex-1 flex flex-col min-w-0 mb-16 md:mb-0 h-full">
         <TopBar 
