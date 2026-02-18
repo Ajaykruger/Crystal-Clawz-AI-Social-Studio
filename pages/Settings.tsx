@@ -24,9 +24,10 @@ interface SettingsProps {
     onNavigate: (view: ViewState, params?: any) => void;
     currentUser?: User;
     onUpdateUser?: (user: User) => void;
+    onSignOut?: () => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ initialParams, onNavigate, currentUser: propUser, onUpdateUser }) => {
+const Settings: React.FC<SettingsProps> = ({ initialParams, onNavigate, currentUser: propUser, onUpdateUser, onSignOut }) => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [localUser, setLocalUser] = useState(userService.getCurrentUser());
   
@@ -106,7 +107,10 @@ const Settings: React.FC<SettingsProps> = ({ initialParams, onNavigate, currentU
                      <p className="text-sm font-bold text-slate-900 dark:text-white">{currentUser.name}</p>
                      <span className="text-[10px] uppercase bg-slate-200 dark:bg-gray-600 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300 font-bold">{currentUser.role}</span>
                  </div>
-                 <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                 <button
+                     onClick={onSignOut}
+                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                 >
                      <LogOut size={18} />
                      Sign Out
                  </button>
@@ -373,9 +377,9 @@ const ModerationSettings = ({ currentUser }: { currentUser: any }) => {
                                 <h4 className="font-bold text-slate-900 dark:text-white text-sm">{item.label}</h4>
                                 <p className="text-xs text-slate-500 dark:text-slate-400">{item.desc}</p>
                             </div>
-                            <div 
+                            <div
                                 onClick={() => handleToggle(item.key as any)}
-                                className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors ${config[item.key as keyof typeof config] ? 'bg-green-50 dark:bg-green-900/50' : 'bg-slate-300 dark:bg-gray-600'}`}
+                                className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors ${config[item.key as keyof typeof config] ? 'bg-green-500 dark:bg-green-500' : 'bg-slate-300 dark:bg-gray-600'}`}
                             >
                                 <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${config[item.key as keyof typeof config] ? 'translate-x-6' : ''}`} />
                             </div>

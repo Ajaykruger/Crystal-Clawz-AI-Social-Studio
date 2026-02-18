@@ -546,10 +546,10 @@ const App: React.FC = () => {
       case 'drafts': return <Drafts onNavigate={handleNavigate} drafts={allDrafts} onUpdateDrafts={setAllDrafts} onMoveToReview={handleMoveDraftToReview} />;
       case 'calendar': return <Calendar posts={calendarPosts} onUpdatePost={(updated) => setCalendarPosts(posts => posts.map(p => p.id === updated.id ? updated : p))} onNavigate={handleNavigate} onEditPost={handleEditPost} onAddReviewPosts={handleAddReviewPosts} onAddPost={handleAddCalendarPost} />;
       case 'library': return <Library onNavigate={handleNavigate} libraryVersion={libraryVersion} />;
-      case 'settings': return <Settings initialParams={viewParams} onNavigate={handleNavigate} currentUser={currentUser} onUpdateUser={setCurrentUser} />;
+      case 'settings': return <Settings initialParams={viewParams} onNavigate={handleNavigate} currentUser={currentUser} onUpdateUser={setCurrentUser} onSignOut={handleSignOut} />;
       case 'top-posts': return <TopPostsView onNavigate={handleNavigate} />;
       case 'social-suite': return <SocialSuite />;
-      default: return <Settings onNavigate={handleNavigate} currentUser={currentUser} onUpdateUser={setCurrentUser} />;
+      default: return <Settings onNavigate={handleNavigate} currentUser={currentUser} onUpdateUser={setCurrentUser} onSignOut={handleSignOut} />;
     }
   };
 
