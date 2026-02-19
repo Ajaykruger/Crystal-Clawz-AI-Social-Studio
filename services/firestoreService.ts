@@ -10,13 +10,14 @@
  *   reviewPosts    – ReviewPost[]
  *
  * For 2–3 users this is simple, fast, and well within Firestore limits.
+ *
+ * When Firebase is not configured (no env vars), all methods are no-ops
+ * so the app works locally without any Firebase credentials.
  */
 
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from './firebaseService';
+import { db, isFirebaseConfigured } from './firebaseService';
 import { CalendarPost, DraftListPost, ReviewPost } from '../types';
-
-const WORKSPACE_DOC = doc(db, 'workspace', 'crystalclawz');
 
 export interface WorkspaceData {
   drafts: DraftListPost[];
@@ -37,8 +38,11 @@ const deserializeCalendarPost = (data: any): CalendarPost => ({
 });
 
 export const firestoreService = {
-  /** Load all shared workspace data. Returns null if no data exists yet. */
+  /** Load all shared workspace data. Returns null if no data exists yet or Firebase is not configured. */
   async load(): Promise<WorkspaceData | null> {
+    if (!isFirebaseConfigured) return null;
+
+    const WORKSPACE_DOC = doc(db, 'workspace', 'crystalclawz');
     const snap = await getDoc(WORKSPACE_DOC);
     if (!snap.exists()) return null;
 
@@ -50,8 +54,11 @@ export const firestoreService = {
     };
   },
 
-  /** Save all shared workspace data in one write */
+  /** Save all shared workspace data in one write. No-op when Firebase is not configured. */
   async save(data: WorkspaceData): Promise<void> {
+    if (!isFirebaseConfigured) return;
+
+    const WORKSPACE_DOC = doc(db, 'workspace', 'crystalclawz');
     await setDoc(WORKSPACE_DOC, {
       drafts: data.drafts,
       calendarPosts: data.calendarPosts.map(serializeCalendarPost),

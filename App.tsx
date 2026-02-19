@@ -4,6 +4,7 @@ import { User as FirebaseUser } from 'firebase/auth';
 import AuthGate from './components/AuthGate';
 import { authService } from './services/authService';
 import { firestoreService } from './services/firestoreService';
+import { isFirebaseConfigured } from './services/firebaseService';
 import Sidebar from './components/Sidebar';
 import MobileNav from './components/MobileNav';
 import TopBar from './components/TopBar';
@@ -304,8 +305,15 @@ const App: React.FC = () => {
     }
   };
 
-  // Listen to Firebase auth — load workspace data when signed in
+  // Listen to Firebase auth — load workspace data when signed in.
+  // When Firebase is not configured (no env vars), skip auth entirely so
+  // the app works in AI Studio / local dev without Firebase credentials.
   useEffect(() => {
+    if (!isFirebaseConfigured) {
+      setIsAuthChecking(false);
+      return;
+    }
+
     const unsubscribe = authService.onAuthStateChanged(async (user) => {
       setFirebaseUser(user);
       if (user) {
@@ -557,7 +565,7 @@ const App: React.FC = () => {
     return <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-400">Loading...</div>;
   }
 
-  if (!firebaseUser) {
+  if (isFirebaseConfigured && !firebaseUser) {
     return <AuthGate onSignedIn={() => { /* onAuthStateChanged handles state update */ }} />;
   }
 
