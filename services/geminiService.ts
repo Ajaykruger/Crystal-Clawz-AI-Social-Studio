@@ -2,20 +2,48 @@
 import { GoogleGenAI, Type, LiveServerMessage, Modality } from "@google/genai";
 import { DraftState, PostOption, Platform, PlannerConfig, PlanDay, PlanIdea, TrendingSuggestion, ReportQueryParseResult } from "../types";
 
-// Wrapper to handle API key errors and retry with user selection
-async function executeWithGemini<T>(action: (ai: GoogleGenAI) => Promise<T>): Promise<T> {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+/**
+ * Returns the Gemini API key, reading it dynamically at call time.
+ *
+ * Priority order:
+ *   1. process.env.API_KEY  — set by Google AI Studio's runtime injection,
+ *      or baked in by vite.config.ts when VITE_GEMINI_API_KEY is present locally.
+ *   2. import.meta.env.VITE_GEMINI_API_KEY — fallback for local Vite dev server.
+ *
+ * Using typeof-guard prevents ReferenceError in environments where `process`
+ * is not polyfilled (plain browser without AI Studio or Vite define).
+ */
+export function getApiKey(): string {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fromProcess = (typeof process !== 'undefined') ? (process as any).env?.API_KEY : undefined;
+    return fromProcess || (import.meta.env as Record<string, string>).VITE_GEMINI_API_KEY || '';
+}
+
+/**
+ * Executes an AI action with automatic recovery when the API key is invalid.
+ *
+ * If the call fails with an API_KEY_INVALID error and the app is running inside
+ * Google AI Studio, openSelectKey() is called to let the user pick a fresh key.
+ * A 600 ms pause after selection gives AI Studio time to propagate the new key
+ * into process.env.API_KEY before the retry reads it.
+ */
+export async function executeWithGemini<T>(action: (ai: GoogleGenAI) => Promise<T>): Promise<T> {
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
     try {
         return await action(ai);
     } catch (e: any) {
         const errStr = (e.toString() + JSON.stringify(e)).toLowerCase();
-        // Check for common API key or permission errors
-        if (errStr.includes("api key not valid") || errStr.includes("api_key_invalid") || errStr.includes("requested entity was not found")) {
-            console.warn("API Key invalid or missing. Prompting for selection...");
+        // Only attempt recovery for API key errors, not model/quota/network errors.
+        const isKeyError = errStr.includes("api key not valid")
+            || errStr.includes("api_key_invalid")
+            || errStr.includes("api key expired");
+        if (isKeyError) {
+            console.warn("Gemini API key invalid — prompting for a new key...");
             if ((window as any).aistudio?.openSelectKey) {
                 await (window as any).aistudio.openSelectKey();
-                // Re-initialize client with the new key which is now in process.env
-                const newAi = new GoogleGenAI({ apiKey: process.env.API_KEY });
+                // Wait for AI Studio to propagate the new key into process.env.API_KEY.
+                await new Promise<void>((resolve) => setTimeout(resolve, 600));
+                const newAi = new GoogleGenAI({ apiKey: getApiKey() });
                 return await action(newAi);
             }
         }
@@ -204,9 +232,7 @@ export const generatePromptFromContext = async (context: string): Promise<string
 };
 
 export const createChatSession = () => {
-    // Create new instance directly. If API key is invalid, sendMessage will fail. 
-    // Ideally chat interface handles retry, but for now we rely on initial setup.
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
     return ai.chats.create({
         model: 'gemini-3-flash-preview',
         config: {
@@ -221,9 +247,7 @@ export const connectLiveSession = (callbacks: {
     onError?: (err: any) => void;
     onClose?: () => void;
 }) => {
-    // We cannot easily wrap the live connection promise with retry logic in the same way 
-    // because it involves event callbacks. We assume key is valid or user handles error via UI.
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
     return ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-12-2025',
         callbacks: {
