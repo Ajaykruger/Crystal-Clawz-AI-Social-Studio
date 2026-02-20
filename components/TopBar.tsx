@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, Search, MessageCircle, Check, Trash2, CheckCircle, AlertTriangle, Info, Menu, Sun, Moon } from 'lucide-react';
-import { ViewState, Notification } from '../types';
+import { Bell, Search, MessageCircle, Check, Trash2, CheckCircle, AlertTriangle, Info, Menu, Sun, Moon, ChevronDown, Layout, Store, User as UserIcon } from 'lucide-react';
+import { ViewState, Notification, User } from '../types';
 
 interface TopBarProps {
   currentView: ViewState;
@@ -10,10 +10,12 @@ interface TopBarProps {
   onToggleMenu: () => void;
   theme?: 'light' | 'dark';
   onToggleTheme?: () => void;
+  user?: User;
 }
 
-const TopBar: React.FC<TopBarProps> = ({ currentView, onNavigate, onToggleChat, onToggleMenu, theme, onToggleTheme }) => {
+const TopBar: React.FC<TopBarProps> = ({ currentView, onNavigate, onToggleChat, onToggleMenu, theme, onToggleTheme, user }) => {
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showWorkspacePicker, setShowWorkspacePicker] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([
       { id: '1', title: 'Post Published', message: 'Your "Summer Trends" reel is now live on Instagram.', time: '2 mins ago', read: false, type: 'success' },
       { id: '2', title: 'Asset Generated', message: '3 new image variations are ready for review.', time: '1 hour ago', read: false, type: 'info' },
@@ -21,11 +23,15 @@ const TopBar: React.FC<TopBarProps> = ({ currentView, onNavigate, onToggleChat, 
   ]);
   
   const notificationRef = useRef<HTMLDivElement>(null);
+  const workspaceRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
         setShowNotifications(false);
+      }
+      if (workspaceRef.current && !workspaceRef.current.contains(event.target as Node)) {
+        setShowWorkspacePicker(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -56,6 +62,7 @@ const TopBar: React.FC<TopBarProps> = ({ currentView, onNavigate, onToggleChat, 
   const getBreadcrumbs = () => {
     switch(currentView) {
         case 'dashboard': return 'Dashboard';
+        case 'synopsis': return 'Synopsis';
         case 'create': return 'Create';
         case 'engine': return 'Engine';
         case 'workbench': return 'Create / Workbench';
@@ -78,10 +85,42 @@ const TopBar: React.FC<TopBarProps> = ({ currentView, onNavigate, onToggleChat, 
         >
           <Menu size={24} />
         </button>
-        <div className="md:hidden font-extrabold text-pink-600 tracking-tight">Crystal Clawz</div>
-        <div className="hidden md:flex items-center text-sm text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-700 pl-4 ml-4">
-          <span className="font-semibold text-gray-900 dark:text-white mr-2">Crystal Clawz Social Studio</span>
-          <span className="text-gray-400">/</span>
+        
+        {/* Brand & Workspace Switcher */}
+        <div className="relative" ref={workspaceRef}>
+            <button 
+                onClick={() => setShowWorkspacePicker(!showWorkspacePicker)}
+                className="flex items-center gap-3 px-3 py-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+            >
+                <div className="w-8 h-8 bg-pink-600 rounded-lg flex items-center justify-center text-white font-black text-sm shadow-sm group-hover:scale-105 transition-transform">C</div>
+                <div className="text-left hidden sm:block">
+                    <p className="text-[10px] font-bold text-pink-600 dark:text-pink-400 uppercase tracking-widest leading-none mb-0.5">Crystal Clawz</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1 leading-none">
+                        Main Studio
+                        <ChevronDown size={14} className={`text-gray-400 transition-transform ${showWorkspacePicker ? 'rotate-180' : ''}`} />
+                    </p>
+                </div>
+            </button>
+
+            {showWorkspacePicker && (
+                <div className="absolute left-0 top-full mt-2 w-64 glass-card rounded-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 p-2 space-y-1">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase px-3 py-2">Switch Workspace</p>
+                    <button className="w-full flex items-center gap-3 p-3 rounded-lg bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 font-bold text-sm">
+                        <Store size={18}/> Main Studio
+                        <Check size={14} className="ml-auto"/>
+                    </button>
+                    <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 font-medium text-sm">
+                        <Layout size={18}/> Education Portal
+                    </button>
+                    <div className="h-px bg-gray-100 dark:bg-gray-700 my-1"/>
+                    <button onClick={() => onNavigate('settings')} className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 font-medium text-sm">
+                        <UserIcon size={18}/> Manage Accounts
+                    </button>
+                </div>
+            )}
+        </div>
+
+        <div className="hidden md:flex items-center text-sm text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-700 pl-4 ml-2">
           <span className="ml-2 font-medium">{getBreadcrumbs()}</span>
         </div>
       </div>
@@ -110,7 +149,7 @@ const TopBar: React.FC<TopBarProps> = ({ currentView, onNavigate, onToggleChat, 
             className="flex items-center gap-2 bg-pink-50 dark:bg-pink-900/30 hover:bg-pink-100 dark:hover:bg-pink-900/50 text-pink-700 dark:text-pink-300 px-3 py-2 rounded-lg text-sm font-bold transition-colors"
         >
             <MessageCircle size={18} />
-            <span className="hidden md:inline">AI Assistant</span>
+            <span className="hidden md:inline">Assistant</span>
         </button>
 
         <div className="relative" ref={notificationRef}>
@@ -174,6 +213,18 @@ const TopBar: React.FC<TopBarProps> = ({ currentView, onNavigate, onToggleChat, 
                 </div>
             )}
         </div>
+
+        {/* Profile Avatar */}
+        <button 
+            onClick={() => onNavigate('settings')}
+            className="w-10 h-10 rounded-full border-2 border-transparent hover:border-pink-500 transition-all overflow-hidden bg-gray-100 dark:bg-gray-800"
+        >
+            {user?.avatarUrl ? (
+                <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+            ) : (
+                <div className="w-full h-full flex items-center justify-center font-bold text-gray-500">{user?.name.charAt(0) || 'U'}</div>
+            )}
+        </button>
       </div>
     </header>
   );

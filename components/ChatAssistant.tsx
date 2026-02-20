@@ -1,15 +1,15 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Mic, Send, MessageSquare, Waves, Loader2, StopCircle, Sparkles, AlertCircle } from 'lucide-react';
+import { X, Mic, Send, MessageSquare, Waves, Loader2, StopCircle, Sparkles, AlertCircle, Database } from 'lucide-react';
 import { createChatSession, connectLiveSession } from '../services/geminiService';
 import { LiveServerMessage } from '@google/genai';
-import { CalendarPost, PostFormat, Platform } from '../types';
+import { CalendarPost, PostFormat, Platform, AppContext } from '../types';
 import { CCTextField } from './ui/Inputs';
 
 interface ChatAssistantProps {
   isOpen: boolean;
   onClose: () => void;
   onAddPost?: (post: CalendarPost) => void;
+  appContext: AppContext;
 }
 
 interface ChatMessage {
@@ -19,12 +19,12 @@ interface ChatMessage {
     isAction?: boolean;
 }
 
-const ChatAssistant: React.FC<ChatAssistantProps> = ({ isOpen, onClose, onAddPost }) => {
+const ChatAssistant: React.FC<ChatAssistantProps> = ({ isOpen, onClose, onAddPost, appContext }) => {
   const [activeTab, setActiveTab] = useState<'chat' | 'voice'>('chat');
   
   // --- Text Chat State ---
   const [messages, setMessages] = useState<ChatMessage[]>([
-      { id: '1', role: 'model', text: 'Hey team! Ready to create some killer content? I\'m here to help with captions, strategy, and trends. 💅✨' }
+      { id: '1', role: 'model', text: 'Hey team! Ready to create some killer content? I have full visibility into your drafts, library, and schedule. How can I help? 💅✨' }
   ]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -69,8 +69,9 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ isOpen, onClose, onAddPos
       setIsTyping(true);
 
       try {
+          // Pass context to ensure AI sees current data
           if (!chatSessionRef.current) {
-              chatSessionRef.current = createChatSession();
+              chatSessionRef.current = createChatSession(appContext);
           }
 
           const result = await chatSessionRef.current.sendMessage({ message: userMsg.text });
@@ -201,7 +202,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ isOpen, onClose, onAddPos
                       }
                   })
                   .catch(() => {
-                      // Ignore errors from session promise here, handled in main try/catch or onError
+                      // Ignore errors from session promise here
                   });
           };
 
@@ -255,13 +256,19 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ isOpen, onClose, onAddPos
               },
               onError: (e) => {
                   console.error("Live Error", e);
-                  setLiveError("Connection error. Please try again.");
+                  const errorMsg = e?.message || e?.toString() || "Unknown error";
+                  if (errorMsg.toLowerCase().includes("deadline expired")) {
+                      setLiveError("Connection timed out. Please try starting again.");
+                  } else {
+                      setLiveError("Connection error. Please try again.");
+                  }
                   endLiveSession();
               }
-          });
+          }, appContext);
           
           sessionRef.current = sessionPromise;
-          await sessionPromise; // Wait for connection to verify it works
+          // Wait for connection with a safety timeout (handled by SDK but being explicit here)
+          await sessionPromise; 
 
       } catch (e: any) {
           console.error("Failed to start live session", e);
@@ -271,24 +278,26 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ isOpen, onClose, onAddPos
   };
 
   const endLiveSession = () => {
+      // Cleanup contexts
       if (inputAudioContextRef.current) {
-          inputAudioContextRef.current.close();
+          inputAudioContextRef.current.close().catch(() => {});
           inputAudioContextRef.current = null;
       }
       if (outputAudioContextRef.current) {
-          outputAudioContextRef.current.close();
+          outputAudioContextRef.current.close().catch(() => {});
           outputAudioContextRef.current = null;
       }
+      
       setIsLiveConnected(false);
       setIsConnecting(false);
       setIsSpeaking(false);
       
-      // Attempt to close session cleanly if possible, usually just nulling ref is mostly what we can do client side 
-      // aside from explicit close() if SDK supports it on the session object
       sessionRef.current = null;
       
       if (sourcesRef.current) {
-          sourcesRef.current.forEach(s => s.stop());
+          sourcesRef.current.forEach(s => {
+              try { s.stop(); } catch(e) {}
+          });
           sourcesRef.current.clear();
       }
       nextStartTimeRef.current = 0;
@@ -297,43 +306,48 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ isOpen, onClose, onAddPos
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-y-0 right-0 w-full md:w-96 bg-white shadow-2xl z-50 transform transition-transform duration-300 border-l border-slate-200 flex flex-col">
+    <div className="fixed inset-y-0 right-0 w-full md:w-96 bg-white shadow-2xl z-50 transform transition-transform duration-300 border-l border-slate-200 flex flex-col animate-in slide-in-from-right">
         {/* Header */}
-        <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-pink-600 text-white">
-            <h2 className="font-bold flex items-center gap-2">
-                <Sparkles size={18} className="text-yellow-300" />
-                AI Assistant
-            </h2>
-            <button onClick={onClose} className="hover:bg-pink-700 p-1 rounded-full"><X size={20} /></button>
+        <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-pink-600 text-white shadow-sm">
+            <div className="flex flex-col">
+                <h2 className="font-bold flex items-center gap-2">
+                    <Sparkles size={18} className="text-yellow-300" />
+                    AI Assistant
+                </h2>
+                <span className="text-[10px] font-bold text-pink-100 flex items-center gap-1">
+                    <Database size={10} /> SYNCED WITH STUDIO DATA
+                </span>
+            </div>
+            <button onClick={onClose} className="hover:bg-pink-700 p-1 rounded-full transition-colors"><X size={20} /></button>
         </div>
 
         {/* Tabs */}
         <div className="flex border-b border-slate-200">
             <button 
                 onClick={() => setActiveTab('chat')}
-                className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === 'chat' ? 'text-pink-600 border-b-2 border-pink-600 bg-pink-50' : 'text-slate-500 hover:bg-slate-50'}`}
+                className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'chat' ? 'text-pink-600 border-b-2 border-pink-600 bg-pink-50' : 'text-slate-500 hover:bg-slate-50'}`}
             >
                 <MessageSquare size={16} /> Chat
             </button>
             <button 
                 onClick={() => setActiveTab('voice')}
-                className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === 'voice' ? 'text-pink-600 border-b-2 border-pink-600 bg-pink-50' : 'text-slate-500 hover:bg-slate-50'}`}
+                className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'voice' ? 'text-pink-600 border-b-2 border-pink-600 bg-pink-50' : 'text-slate-500 hover:bg-slate-50'}`}
             >
                 <Mic size={16} /> Live Voice
             </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-hidden flex flex-col">
+        <div className="flex-1 overflow-hidden flex flex-col relative">
             {activeTab === 'chat' ? (
                 <>
                     <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
                         {messages.map((msg) => (
                             <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
+                                <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm transition-all ${
                                     msg.role === 'user' 
                                     ? 'bg-pink-600 text-white rounded-br-none' 
-                                    : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none shadow-sm'
+                                    : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none'
                                 }`}>
                                     {msg.text}
                                 </div>
@@ -343,31 +357,31 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ isOpen, onClose, onAddPos
                             <div className="flex justify-start">
                                 <div className="bg-white border border-slate-200 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm">
                                     <div className="flex gap-1">
-                                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
-                                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-75"></div>
-                                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-150"></div>
+                                        <div className="w-2 h-2 bg-pink-400 rounded-full animate-bounce"></div>
+                                        <div className="w-2 h-2 bg-pink-400 rounded-full animate-bounce delay-75"></div>
+                                        <div className="w-2 h-2 bg-pink-400 rounded-full animate-bounce delay-150"></div>
                                     </div>
                                 </div>
                             </div>
                         )}
                         <div ref={messagesEndRef} />
                     </div>
-                    <div className="p-4 bg-white border-t border-slate-200">
+                    <div className="p-4 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
                         <div className="flex gap-2 relative items-center">
                             <div className="flex-1">
                                 <CCTextField 
                                     value={inputText}
                                     onChange={(e) => setInputText(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                                    placeholder="Ask about captions, trends..."
-                                    className="rounded-full pr-12" // Extra padding for send button space
+                                    placeholder="Ask about your schedule or drafts..."
+                                    className="rounded-full pr-12 text-sm"
                                     micEnabled={true}
                                 />
                             </div>
                             <button 
                                 onClick={handleSendMessage}
                                 disabled={!inputText.trim() || isTyping}
-                                className="bg-pink-600 text-white p-2 rounded-full hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 shadow-sm"
+                                className="bg-pink-600 text-white p-2.5 rounded-full hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 shadow-lg shadow-pink-100 transition-all active:scale-95"
                             >
                                 <Send size={18} />
                             </button>
@@ -376,17 +390,17 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ isOpen, onClose, onAddPos
                 </>
             ) : (
                 <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-50">
-                    <div className={`relative w-40 h-40 rounded-full flex items-center justify-center mb-8 transition-all duration-500 ${
+                    <div className={`relative w-40 h-40 rounded-full flex items-center justify-center mb-8 transition-all duration-700 ${
                         isLiveConnected 
-                        ? 'bg-pink-100 ring-4 ring-pink-200 shadow-xl shadow-pink-200' 
-                        : 'bg-slate-200'
+                        ? 'bg-pink-100 ring-8 ring-pink-50 shadow-2xl shadow-pink-200' 
+                        : 'bg-white border-4 border-slate-100 shadow-sm'
                     }`}>
                         {isConnecting ? (
                             <Loader2 size={48} className="text-pink-600 animate-spin" />
                         ) : isLiveConnected ? (
-                            <Waves size={64} className={`text-pink-600 ${isSpeaking ? 'animate-pulse' : ''}`} />
+                            <Waves size={64} className={`text-pink-600 ${isSpeaking ? 'animate-pulse scale-110' : ''} transition-transform duration-300`} />
                         ) : (
-                            <Mic size={64} className="text-slate-400" />
+                            <Mic size={64} className="text-slate-300" />
                         )}
                         
                         {/* Ripple Effect when speaking */}
@@ -398,18 +412,18 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ isOpen, onClose, onAddPos
                         )}
                     </div>
                     
-                    <h3 className="text-xl font-bold text-slate-800 mb-2">
-                        {isConnecting ? 'Connecting...' : isLiveConnected ? 'Listening...' : 'Voice Assistant'}
+                    <h3 className="text-xl font-bold text-slate-900 mb-2">
+                        {isConnecting ? 'Connecting...' : isLiveConnected ? 'Listening...' : 'Voice Brainstorming'}
                     </h3>
-                    <p className="text-sm text-slate-500 text-center mb-8 max-w-xs">
+                    <p className="text-sm text-slate-500 text-center mb-8 max-w-xs leading-relaxed font-medium">
                         {isLiveConnected 
-                         ? "Go ahead, I'm listening! Ask me to brainstorm ideas." 
-                         : "Start a live conversation to brainstorm ideas hands-free."}
+                         ? "Go ahead, I'm listening! Ask me to help with your current drafts or schedule." 
+                         : "Start a live conversation to brainstorm ideas hands-free using your studio context."}
                     </p>
 
                     {liveError && (
-                        <div className="mb-6 bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm flex items-center gap-2">
-                            <AlertCircle size={16}/> {liveError}
+                        <div className="mb-6 bg-red-50 text-red-600 px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 border border-red-100 animate-in shake">
+                            <AlertCircle size={14}/> {liveError}
                         </div>
                     )}
                     
@@ -417,14 +431,14 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ isOpen, onClose, onAddPos
                         <button 
                             onClick={startLiveSession}
                             disabled={isConnecting}
-                            className="bg-pink-600 text-white px-8 py-4 rounded-full font-bold shadow-lg shadow-pink-200 hover:bg-pink-700 hover:scale-105 transition-all flex items-center gap-2"
+                            className="bg-pink-600 text-white px-8 py-4 rounded-full font-black shadow-xl shadow-pink-200 hover:bg-pink-700 hover:scale-105 transition-all flex items-center gap-3 active:scale-95"
                         >
                             <Mic size={20} /> Start Conversation
                         </button>
                     ) : (
                         <button 
                             onClick={endLiveSession}
-                            className="bg-red-50 text-red-600 border border-red-200 px-8 py-4 rounded-full font-bold hover:bg-red-100 flex items-center gap-2"
+                            className="bg-white border-2 border-red-100 text-red-600 px-8 py-3 rounded-full font-bold hover:bg-red-50 flex items-center gap-2 transition-all active:scale-95"
                         >
                             <StopCircle size={20} /> End Session
                         </button>

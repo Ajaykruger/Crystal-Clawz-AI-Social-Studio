@@ -6,9 +6,9 @@ import {
   Search, Filter, CheckCircle, Clock, Trash2, 
   MoreVertical, Instagram, Facebook, Layout, Loader2,
   ChevronRight, Reply, ThumbsUp, Heart, Share2, 
-  User, Check, X, AlertCircle, ExternalLink
+  User, Check, X, AlertCircle, ExternalLink, BarChart3, TrendingUp
 } from 'lucide-react';
-import { generateSocialReply } from '../services/geminiService';
+import { generateSocialReply, analyzeSentiment } from '../services/geminiService';
 import { CCTextArea } from '../components/ui/Inputs';
 import { USER_PROVIDED_ASSETS } from '../services/libraryService';
 
@@ -26,6 +26,7 @@ interface SocialItem {
     unread: boolean;
     postThumbnail?: string; // For comments
     postUrl?: string;
+    sentiment?: { label: 'positive' | 'neutral' | 'negative'; score: number; summary: string };
     thread?: { role: 'user' | 'brand'; content: string; timestamp: string }[];
 }
 
@@ -38,6 +39,7 @@ const MOCK_DATA: SocialItem[] = [
         content: "Hey Crystal! I'm struggling with the Rubber Base lifting. Any tips for a beginner?",
         timestamp: '10 mins ago',
         unread: true,
+        sentiment: { label: 'neutral', score: 45, summary: 'User is requesting technical product support for Rubber Base.' },
         thread: [
             { role: 'user', content: "Hey Crystal! I'm struggling with the Rubber Base lifting. Any tips for a beginner?", timestamp: '10 mins ago' }
         ]
@@ -50,6 +52,7 @@ const MOCK_DATA: SocialItem[] = [
         content: "Wow, that pigment is INSANE! Is this the new Indulgence #008?",
         timestamp: '1 hour ago',
         unread: true,
+        sentiment: { label: 'positive', score: 92, summary: 'User is showing excitement about Indulgence #008 pigment.' },
         postThumbnail: USER_PROVIDED_ASSETS[6].url,
         postUrl: 'https://www.tiktok.com/@crystalclawz/video/73289123',
     },
@@ -61,6 +64,7 @@ const MOCK_DATA: SocialItem[] = [
         content: "Do you have any training dates available for Cape Town next month?",
         timestamp: '3 hours ago',
         unread: false,
+        sentiment: { label: 'neutral', score: 50, summary: 'User inquiring about training schedules in Cape Town.' },
     },
     {
         id: 'com_2',
@@ -70,6 +74,7 @@ const MOCK_DATA: SocialItem[] = [
         content: "Love this look! 🔥🔥🔥",
         timestamp: '5 hours ago',
         unread: false,
+        sentiment: { label: 'positive', score: 98, summary: 'Pure praise and excitement for the nail set.' },
         postThumbnail: USER_PROVIDED_ASSETS[2].url,
         postUrl: 'https://www.instagram.com/p/C2f9v8_L/',
     }
@@ -80,6 +85,7 @@ const SocialSuite: React.FC = () => {
     const [selectedId, setSelectedId] = useState<string | null>(MOCK_DATA[0].id);
     const [replyText, setReplyText] = useState('');
     const [isAIGenerating, setIsAIGenerating] = useState(false);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     
     const selectedItem = useMemo(() => MOCK_DATA.find(i => i.id === selectedId), [selectedId]);
@@ -93,6 +99,14 @@ const SocialSuite: React.FC = () => {
         });
     }, [activeTab, searchQuery]);
 
+    const globalSentiment = useMemo(() => {
+        const count = MOCK_DATA.length;
+        const positive = MOCK_DATA.filter(i => i.sentiment?.label === 'positive').length;
+        const neutral = MOCK_DATA.filter(i => i.sentiment?.label === 'neutral').length;
+        const negative = MOCK_DATA.filter(i => i.sentiment?.label === 'negative').length;
+        return { positive: (positive/count)*100, neutral: (neutral/count)*100, negative: (negative/count)*100 };
+    }, []);
+
     const handleAIReply = async () => {
         if (!selectedItem) return;
         setIsAIGenerating(true);
@@ -103,6 +117,20 @@ const SocialSuite: React.FC = () => {
             console.error(e);
         } finally {
             setIsAIGenerating(false);
+        }
+    };
+
+    const handleAnalyze = async () => {
+        if (!selectedItem) return;
+        setIsAnalyzing(true);
+        try {
+            const result = await analyzeSentiment(selectedItem.content);
+            // Update local mock data for demo
+            const item = MOCK_DATA.find(i => i.id === selectedId);
+            if (item) item.sentiment = result;
+            setSelectedId(selectedId); // trigger re-render
+        } finally {
+            setIsAnalyzing(false);
         }
     };
 
@@ -122,6 +150,20 @@ const SocialSuite: React.FC = () => {
         }
     };
 
+    const SentimentTag = ({ sentiment }: { sentiment: SocialItem['sentiment'] }) => {
+        if (!sentiment) return null;
+        const colors = {
+            positive: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+            neutral: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400',
+            negative: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+        };
+        return (
+            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tighter ${colors[sentiment.label]}`}>
+                {sentiment.label} {sentiment.score}
+            </span>
+        );
+    };
+
     return (
         <div className="flex h-full bg-slate-50 dark:bg-gray-900 overflow-hidden transition-colors duration-300">
             
@@ -135,6 +177,20 @@ const SocialSuite: React.FC = () => {
                         </h2>
                         <button className="p-2 hover:bg-slate-50 dark:hover:bg-gray-700 rounded-full text-slate-400"><Filter size={18}/></button>
                     </div>
+
+                    {/* Community Health Bar */}
+                    <div className="mb-6 space-y-2">
+                        <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                            <span className="flex items-center gap-1"><TrendingUp size={10}/> Community Sentiment</span>
+                            <span className="text-green-600">{Math.round(globalSentiment.positive)}% Positive</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-slate-100 dark:bg-gray-700 rounded-full overflow-hidden flex">
+                            <div className="h-full bg-green-500" style={{ width: `${globalSentiment.positive}%` }} />
+                            <div className="h-full bg-slate-300 dark:bg-slate-500" style={{ width: `${globalSentiment.neutral}%` }} />
+                            <div className="h-full bg-red-500" style={{ width: `${globalSentiment.negative}%` }} />
+                        </div>
+                    </div>
+
                     <div className="relative mb-4">
                         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input 
@@ -166,7 +222,7 @@ const SocialSuite: React.FC = () => {
                             className={`p-4 cursor-pointer transition-colors relative hover:bg-slate-50 dark:hover:bg-gray-700/50 ${selectedId === item.id ? 'bg-pink-50/50 dark:bg-pink-900/10 border-l-4 border-l-pink-600' : 'border-l-4 border-l-transparent'}`}
                         >
                             <div className="flex gap-3">
-                                <div className="relative">
+                                <div className="relative shrink-0">
                                     <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-gray-600 flex items-center justify-center font-bold text-slate-500">
                                         {item.user.name.charAt(0)}
                                     </div>
@@ -176,9 +232,12 @@ const SocialSuite: React.FC = () => {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-start mb-0.5">
-                                        <h4 className={`text-sm font-bold truncate ${item.unread ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`}>
-                                            {item.user.name}
-                                        </h4>
+                                        <div className="flex flex-col">
+                                            <h4 className={`text-sm font-bold truncate ${item.unread ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`}>
+                                                {item.user.name}
+                                            </h4>
+                                            <SentimentTag sentiment={item.sentiment} />
+                                        </div>
                                         <span className="text-[10px] text-slate-400 whitespace-nowrap">{item.timestamp}</span>
                                     </div>
                                     <p className={`text-xs truncate ${item.unread ? 'text-slate-800 dark:text-slate-200 font-medium' : 'text-slate-500'}`}>
@@ -216,6 +275,14 @@ const SocialSuite: React.FC = () => {
                                 </div>
                             </div>
                             <div className="flex gap-1">
+                                <button 
+                                    onClick={handleAnalyze}
+                                    disabled={isAnalyzing}
+                                    className="p-2 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-lg text-slate-400 hover:text-pink-600 transition-all"
+                                    title="AI Analyze"
+                                >
+                                    {isAnalyzing ? <Loader2 size={18} className="animate-spin" /> : <BarChart3 size={18}/>}
+                                </button>
                                 <button className="p-2 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-full text-slate-400"><Heart size={18}/></button>
                                 <button className="p-2 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-full text-slate-400"><MoreVertical size={18}/></button>
                             </div>
@@ -223,6 +290,17 @@ const SocialSuite: React.FC = () => {
 
                         {/* Thread Body */}
                         <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30 dark:bg-gray-900">
+                            {/* Sentiment/Insight Banner */}
+                            {selectedItem.sentiment && (
+                                <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border-l-4 border-l-purple-500 border border-slate-100 dark:border-gray-700 shadow-sm flex items-start gap-3">
+                                    <Sparkles size={18} className="text-purple-500 shrink-0 mt-1"/>
+                                    <div>
+                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">AI Context Analysis</p>
+                                        <p className="text-sm text-slate-700 dark:text-slate-200 font-medium">{selectedItem.sentiment.summary}</p>
+                                    </div>
+                                </div>
+                            )}
+
                             {selectedItem.type === 'comment' && selectedItem.postThumbnail && (
                                 <div className="flex justify-center">
                                     <div className="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-sm flex items-center gap-4 max-w-md w-full">

@@ -1,17 +1,20 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ViewState, Platform } from '../types';
 import { 
   FileText, CheckCircle, Clock, Send, 
   Sparkles, TrendingUp, Heart, MessageCircle, Share2, 
   Instagram, Facebook, Video, ArrowRight, Zap, Eye,
-  Calendar as CalendarIcon, UploadCloud, Plus, MessageSquare
+  Calendar as CalendarIcon, UploadCloud, Plus, MessageSquare, Loader2, ListChecks,
+  // Added missing Check icon
+  Check
 } from 'lucide-react';
 import { CCTooltip } from '../components/ui/Tooltip';
 import { TooltipKey } from '../services/tooltipService';
 import PostDetailsModal from '../components/PostDetailsModal';
 import { USER_PROVIDED_ASSETS } from '../services/libraryService';
 import { userService } from '../services/userService';
+import { generateStrategicInsights } from '../services/geminiService';
 
 interface DashboardProps {
   onNavigate: (view: ViewState, params?: any) => void;
@@ -99,6 +102,71 @@ export const PlatformIcon = ({ p }: { p: Platform }) => {
         case Platform.YouTubeShorts: return <div className="bg-white p-1 rounded-full shadow-sm"><Video size={12} className="text-red-600"/></div>;
         default: return <div className="bg-white p-1 rounded-full shadow-sm"><Video size={12} className="text-gray-400"/></div>;
     }
+};
+
+const StrategicAdvice = ({ recentPosts }: { recentPosts: any[] }) => {
+    const [insights, setInsights] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchInsights = async () => {
+            try {
+                const data = await generateStrategicInsights({ reach: '28.4k', engagement: '1.9k' }, recentPosts);
+                setInsights(data);
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchInsights();
+    }, []);
+
+    if (loading) return (
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl border border-slate-100 dark:border-gray-700 shadow-sm flex flex-col items-center justify-center min-h-[200px]">
+            <Loader2 className="animate-spin text-pink-500 mb-2" size={24}/>
+            <p className="text-sm text-slate-400 font-medium">Crunching data for your strategy...</p>
+        </div>
+    );
+
+    if (!insights) return null;
+
+    return (
+        <div className="bg-gradient-to-br from-pink-600 to-purple-700 p-8 rounded-3xl text-white shadow-xl shadow-pink-200 dark:shadow-none relative overflow-hidden group">
+            {/* Decoration */}
+            <div className="absolute -right-4 -top-4 w-32 h-32 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />
+            
+            <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-4">
+                    <div className="bg-white/20 p-2 rounded-xl backdrop-blur-md">
+                        <Sparkles size={20} className="text-yellow-300" />
+                    </div>
+                    <h3 className="font-bold text-lg">{insights.headline}</h3>
+                    {insights.priority === 'high' && <span className="bg-red-500 text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest ml-auto">Priority</span>}
+                </div>
+                
+                <p className="text-pink-100 text-sm leading-relaxed mb-6 font-medium">
+                    {insights.advice}
+                </p>
+
+                <div className="space-y-3 mb-6">
+                    {insights.actionItems.map((item: string, i: number) => (
+                        <div key={i} className="flex items-center gap-3 text-sm bg-white/10 p-3 rounded-xl backdrop-blur-sm hover:bg-white/20 transition-colors">
+                            <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                                {/* Fix: Added Check to imports to resolve Cannot find name 'Check' */}
+                                <Check size={12}/>
+                            </div>
+                            <span className="font-medium">{item}</span>
+                        </div>
+                    ))}
+                </div>
+
+                <button className="w-full py-3 bg-white text-pink-700 rounded-2xl font-bold text-sm hover:bg-pink-50 transition-colors shadow-lg">
+                    Build This Plan
+                </button>
+            </div>
+        </div>
+    );
 };
 
 interface TopPostCardProps {
@@ -260,6 +328,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         </div>
       </div>
 
+      {/* Strategic AI Advice Spotlight */}
+      <section className="animate-in fade-in slide-in-from-bottom-2 duration-1000">
+          <StrategicAdvice recentPosts={topPosts.slice(0, 3)} />
+      </section>
+
       {/* 2. SNAPSHOT: Performance Metrics */}
       <section>
           <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -278,7 +351,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
                   <MessageSquare size={16}/> Social Inbox
-                  <span className="text-[9px] bg-pink-100 text-pink-600 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shadow-sm animate-pulse">Phase 2</span>
+                  <span className="text-[10px] bg-pink-100 text-pink-600 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shadow-sm animate-pulse">Phase 2</span>
               </h2>
               <button 
                   onClick={() => onNavigate('social-suite')}

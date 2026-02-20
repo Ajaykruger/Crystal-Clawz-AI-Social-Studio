@@ -1,21 +1,18 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   User as UserIcon, Link2, Zap, History, ScrollText, 
   Check, AlertCircle, RefreshCw, LogOut, Shield, 
-  Instagram, Facebook, Linkedin, Youtube, AlertTriangle, FileText,
+  Instagram, Facebook, Youtube, AlertTriangle, FileText,
   BarChart, Plus, ChevronRight, Download, PlayCircle, Calendar, ArrowLeft,
-  CheckCircle, ArrowRight, Sparkles, Users, Lock, HardDrive, Cloud, X, Loader2, Image as ImageIcon, FileVideo, FolderPlus, Upload
+  CheckCircle, ArrowRight, Sparkles, Users, Lock, HardDrive, Cloud, X, Loader2, Image as ImageIcon, FileVideo, FolderPlus, Upload, Trash2, Eye,
+  // Added Info to imports to fix "Cannot find name 'Info'"
+  ExternalLink, Mail, ShieldCheck, Database, Globe, Sliders, Palette, Info
 } from 'lucide-react';
-import { Platform, ReportDefinition, ReportRun, ReportTemplate, ViewState, UserRole, MediaAsset, User } from '../types';
+import { Platform, ViewState, User, UserRole, ModerationConfig } from '../types';
 import { CCTextArea, CCTextField } from '../components/ui/Inputs';
-import { getReportTemplates, getSavedReports, saveReport, runReport, deleteReport, getLatestRun } from '../services/reportService';
-import { userService } from '../services/userService';
-import { addManyAssets } from '../services/libraryService';
 import { CCCheckbox } from '../components/ui/Checkbox';
-import ReportsAIAssistant from '../components/ReportsAIAssistant';
-import { GoogleDrivePicker } from '../components/GoogleDrivePicker';
-import { MockFile } from '../components/MockDrivePicker';
+import { userService } from '../services/userService';
+import { logout } from '../services/firebaseService';
 
 type SettingsTab = 'general' | 'team' | 'connections' | 'brand' | 'moderation' | 'reports' | 'history' | 'logs';
 
@@ -24,32 +21,32 @@ interface SettingsProps {
     onNavigate: (view: ViewState, params?: any) => void;
     currentUser?: User;
     onUpdateUser?: (user: User) => void;
-    onSignOut?: () => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ initialParams, onNavigate, currentUser: propUser, onUpdateUser, onSignOut }) => {
+const Settings: React.FC<SettingsProps> = ({ initialParams, onNavigate, currentUser: propUser, onUpdateUser }) => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [localUser, setLocalUser] = useState(userService.getCurrentUser());
   
   const currentUser = propUser || localUser;
 
-  // Handle initial deep linking
   useEffect(() => {
       if (initialParams?.tab) {
           setActiveTab(initialParams.tab);
       }
   }, [initialParams]);
 
-  // Handle mock user switching
-  const handleUserSwitch = (userId: string) => {
-      const newUser = userService.switchUser(userId);
-      if (onUpdateUser) onUpdateUser(newUser);
-      else setLocalUser({...newUser});
-  };
-
   const handleUserUpdate = (updatedUser: User) => {
       if (onUpdateUser) onUpdateUser(updatedUser);
       else setLocalUser(updatedUser);
+  };
+
+  const handleSignOut = async () => {
+    try {
+        await logout();
+        window.location.reload();
+    } catch (e) {
+        console.error(e);
+    }
   };
 
   const navItems: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
@@ -63,37 +60,22 @@ const Settings: React.FC<SettingsProps> = ({ initialParams, onNavigate, currentU
     { id: 'logs', label: 'System Logs', icon: <ScrollText size={18} /> },
   ];
 
-  const renderContent = () => {
-    switch(activeTab) {
-        case 'general': return <GeneralSettings currentUser={currentUser} onSwitchUser={handleUserSwitch} onUpdateUser={handleUserUpdate}/>;
-        case 'team': return <TeamSettings currentUser={currentUser} />;
-        case 'connections': return <ConnectionsSettings />;
-        case 'brand': return <BrandSettings />;
-        case 'moderation': return <ModerationSettings currentUser={currentUser} />;
-        case 'reports': return <ReportsSettings initialParams={initialParams} initialAction={initialParams?.action} initialTemplate={initialParams?.template} onNavigate={onNavigate} />;
-        case 'history': return <HistorySettings />;
-        case 'logs': return <LogsSettings />;
-        default: return null;
-    }
-  };
-
   return (
-    <div className="flex h-full bg-slate-50 dark:bg-gray-900 transition-colors duration-300">
-        {/* Sub Sidebar */}
-        <div className="w-64 border-r border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col">
-            <div className="p-6 border-b border-slate-100 dark:border-gray-700">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Settings</h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Manage workspace preferences</p>
+    <div className="flex h-full bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+        <div className="w-64 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/50 flex flex-col shrink-0">
+            <div className="p-6 border-b border-gray-100 dark:border-gray-800">
+                <h2 className="text-xl font-extrabold text-gray-900 dark:text-white">Settings</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-widest font-bold">Manage studio preferences</p>
             </div>
             <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
                 {navItems.map(item => (
                     <button
                         key={item.id}
                         onClick={() => setActiveTab(item.id)}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
                             activeTab === item.id 
-                            ? 'bg-pink-50 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300' 
-                            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-gray-700'
+                            ? 'bg-pink-50 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300 shadow-sm border border-pink-100/50 dark:border-pink-800/50' 
+                            : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
                         }`}
                     >
                         {item.icon}
@@ -101,15 +83,10 @@ const Settings: React.FC<SettingsProps> = ({ initialParams, onNavigate, currentU
                     </button>
                 ))}
             </nav>
-            <div className="p-4 border-t border-slate-100 dark:border-gray-700">
-                 <div className="mb-4 bg-slate-50 dark:bg-gray-700 p-3 rounded-lg border border-slate-200 dark:border-gray-600">
-                     <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Logged in as:</p>
-                     <p className="text-sm font-bold text-slate-900 dark:text-white">{currentUser.name}</p>
-                     <span className="text-[10px] uppercase bg-slate-200 dark:bg-gray-600 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300 font-bold">{currentUser.role}</span>
-                 </div>
-                 <button
-                     onClick={onSignOut}
-                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+            <div className="p-4 border-t border-gray-100 dark:border-gray-800">
+                 <button 
+                    onClick={handleSignOut}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                  >
                      <LogOut size={18} />
                      Sign Out
@@ -117,448 +94,530 @@ const Settings: React.FC<SettingsProps> = ({ initialParams, onNavigate, currentU
             </div>
         </div>
 
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-8">
-            <div className="max-w-5xl mx-auto">
-                {renderContent()}
+        <div className="flex-1 overflow-y-auto p-8 lg:p-12">
+            <div className="max-w-4xl mx-auto space-y-8 pb-20">
+                {activeTab === 'general' && <GeneralSettings currentUser={currentUser} onUpdateUser={handleUserUpdate}/>}
+                {activeTab === 'team' && <TeamSettings />}
+                {activeTab === 'connections' && <ConnectionsSettings />}
+                {activeTab === 'brand' && <BrandSettings />}
+                {activeTab === 'moderation' && <ModerationSettings />}
+                {activeTab === 'reports' && <ReportsSettings />}
+                {activeTab === 'history' && <HistorySettings />}
+                {activeTab === 'logs' && <LogsSettings />}
             </div>
         </div>
     </div>
   );
 };
 
-// --- Sub Components ---
-
-const GeneralSettings = ({ currentUser, onSwitchUser, onUpdateUser }: { currentUser: User, onSwitchUser: (id: string) => void, onUpdateUser: (user: User) => void }) => {
-    const users = userService.getAllUsers();
-    
+const GeneralSettings = ({ currentUser, onUpdateUser }: { currentUser: User, onUpdateUser: (user: User) => void }) => {
     const [name, setName] = useState(currentUser.name);
-    const [email, setEmail] = useState(currentUser.email);
-    const [avatarUrl, setAvatarUrl] = useState(currentUser.avatarUrl);
-    const [isSaving, setIsSaving] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isKeyActive, setIsKeyActive] = useState<boolean | null>(null);
 
-    // Sync state if user changes context externally
-    useEffect(() => {
-        setName(currentUser.name);
-        setEmail(currentUser.email);
-        setAvatarUrl(currentUser.avatarUrl);
-    }, [currentUser]);
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            // Convert to Base64 to ensure persistence in mock environment
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64String = reader.result as string;
-                setAvatarUrl(base64String);
-            };
-            reader.readAsDataURL(file);
+    const checkKeyStatus = async () => {
+        try {
+            if ((window as any).aistudio?.hasSelectedApiKey) {
+                const active = await (window as any).aistudio.hasSelectedApiKey();
+                setIsKeyActive(active);
+            }
+        } catch (e) {
+            console.error("Key status check failed", e);
         }
     };
 
-    const handleSave = () => {
-        setIsSaving(true);
-        // Simulate network call
-        setTimeout(() => {
-            const updated = userService.updateCurrentUser({
-                name,
-                email,
-                avatarUrl
-            });
-            onUpdateUser(updated);
-            setIsSaving(false);
-        }, 600);
+    useEffect(() => {
+        checkKeyStatus();
+    }, []);
+
+    const handleRotateKey = async () => {
+        if ((window as any).aistudio?.openSelectKey) {
+            await (window as any).aistudio.openSelectKey();
+            setTimeout(checkKeyStatus, 1000);
+        } else {
+            alert("API rotation is only available in the AI Studio environment.");
+        }
     };
 
     return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Profile Information</h3>
-            <div className="flex items-center gap-6 mb-6">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Profile Information</h3>
+            <div className="flex items-center gap-8 mb-8">
                 <div className="relative group">
-                    <div className="w-24 h-24 bg-slate-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-slate-400 font-bold text-3xl overflow-hidden border-4 border-white dark:border-gray-800 shadow-md">
-                        {avatarUrl ? (
-                            <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+                    <div className="w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden shadow-lg border-4 border-white dark:border-gray-800">
+                        {currentUser.avatarUrl ? (
+                            <img src={currentUser.avatarUrl} className="w-full h-full object-cover" alt="Profile" />
                         ) : (
-                            name.charAt(0)
+                            <div className="w-full h-full flex items-center justify-center font-black text-gray-400 text-3xl">
+                                {currentUser.name.charAt(0)}
+                            </div>
                         )}
                     </div>
-                    <button 
-                        onClick={() => fileInputRef.current?.click()}
-                        className="absolute bottom-0 right-0 p-2 bg-slate-900 text-white rounded-full hover:bg-pink-600 transition-colors shadow-sm"
-                        title="Upload Photo"
-                    >
+                    <button className="absolute bottom-0 right-0 p-2 bg-pink-600 text-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
                         <Upload size={14} />
                     </button>
                 </div>
-                <div>
-                    <input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        className="hidden" 
-                        accept="image/*" 
-                        onChange={handleFileChange} 
-                    />
-                    <button 
-                        onClick={() => fileInputRef.current?.click()}
-                        className="bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-gray-600"
-                    >
-                        Change Photo
-                    </button>
-                    <p className="text-xs text-slate-400 mt-2">JPG, GIF or PNG. Max 1MB.</p>
+                <div className="space-y-1">
+                    <h4 className="text-2xl font-black text-gray-900 dark:text-white">{currentUser.name}</h4>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                        <Mail size={14} /> {currentUser.email}
+                    </p>
+                    <div className="mt-2 flex gap-2">
+                        <span className="bg-pink-100 dark:bg-pink-900/40 text-pink-700 dark:text-pink-300 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest">{currentUser.role}</span>
+                        <span className="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest">Active</span>
+                    </div>
                 </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <CCTextField 
-                        label="Full Name" 
-                        value={name} 
-                        onChange={(e) => setName(e.target.value)} 
-                    />
-                </div>
-                <div>
-                    <CCTextField 
-                        label="Email Address" 
-                        type="email" 
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                    />
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <CCTextField label="Full Name" value={name} onChange={e => setName(e.target.value)} />
+                <CCTextField label="Email Address" value={currentUser.email} readOnly disabled />
             </div>
-            <div className="mt-6 flex justify-end">
-                <button 
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="bg-pink-600 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-pink-700 flex items-center gap-2 disabled:opacity-70"
-                >
-                    {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                    {isSaving ? 'Saving...' : 'Save Changes'}
+            <div className="mt-8 flex justify-end">
+                <button className="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-bold hover:scale-[1.02] transition-transform shadow-md">
+                    Update Profile
                 </button>
             </div>
         </div>
 
-        {/* Mock User Switcher for Demo */}
-        <div className="bg-purple-50 dark:bg-purple-900/20 p-6 rounded-xl border border-purple-100 dark:border-purple-800 shadow-sm">
-            <h3 className="text-sm font-bold text-purple-900 dark:text-purple-300 mb-2 flex items-center gap-2">
-                <RefreshCw size={16}/> Demo: Switch User Context
-            </h3>
-            <div className="flex gap-2">
-                {users.map(u => (
+        {/* API KEY ROTATION SECTION */}
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+            <div className="flex items-start justify-between mb-6">
+                <div className="flex items-center gap-4">
+                    <div className="p-3 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-2xl shadow-inner"><Lock size={24}/></div>
+                    <div>
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">Credentials & AI</h3>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Manage your Google Gemini API access.</p>
+                    </div>
+                </div>
+                {isKeyActive === true ? (
+                    <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 px-4 py-2 rounded-full border border-emerald-100 dark:border-emerald-800">
+                        <CheckCircle size={14} />
+                        <span className="text-xs font-black uppercase tracking-widest">Active</span>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 text-gray-400 px-4 py-2 rounded-full border border-gray-100 dark:border-gray-700">
+                        <Loader2 size={14} className="animate-spin" />
+                        <span className="text-xs font-black uppercase tracking-widest">Checking...</span>
+                    </div>
+                )}
+            </div>
+            
+            <div className="p-6 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-800 space-y-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="max-w-md">
+                        <p className="text-sm font-bold text-gray-900 dark:text-white">Gemini API Key</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">Your Studio uses Gemini for content analysis, visual generation, and strategic insights. Rotate your key if it’s compromised or if you switch accounts.</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                         <div className="bg-white dark:bg-gray-800 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 font-mono text-xs text-gray-500 tracking-widest">
+                             •••• •••• •••• 4251
+                         </div>
+                    </div>
+                </div>
+                
+                <div className="flex flex-wrap gap-4">
                     <button 
-                        key={u.id}
-                        onClick={() => onSwitchUser(u.id)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
-                            currentUser.id === u.id 
-                            ? 'bg-purple-600 text-white border-purple-600' 
-                            : 'bg-white dark:bg-gray-800 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900/30'
-                        }`}
+                        onClick={handleRotateKey}
+                        className="flex-1 min-w-[200px] py-4 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 text-gray-900 dark:text-white rounded-2xl font-black text-lg hover:bg-gray-900 hover:text-white dark:hover:bg-white dark:hover:text-gray-900 transition-all flex items-center justify-center gap-3 shadow-lg"
                     >
-                        {u.name} ({u.role})
+                        <RefreshCw size={20} /> Rotate API Key
                     </button>
-                ))}
+                    <a 
+                        href="https://ai.google.dev/gemini-api/docs/billing" 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="px-6 py-4 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                    >
+                        Billing Docs <ExternalLink size={16}/>
+                    </a>
+                </div>
+                
+                <div className="flex items-start gap-2 text-[10px] text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-100 dark:border-amber-800">
+                    <AlertTriangle size={14} className="shrink-0" />
+                    <span>Gemini 2.5/3 Pro models require a paid Google Cloud project with billing enabled. High usage tiers may incur costs.</span>
+                </div>
             </div>
         </div>
     </div>
 )};
 
-const TeamSettings = ({ currentUser }: { currentUser: any }) => {
-    const [users, setUsers] = useState(userService.getAllUsers());
-    const isEditable = currentUser.role === 'admin';
-
-    const handleRoleChange = (userId: string, newRole: UserRole) => {
-        userService.updateUserRole(userId, newRole);
-        setUsers([...userService.getAllUsers()]);
-    };
+const TeamSettings = () => {
+    const members = [
+        { name: 'Andre Kruger', email: 'esellerandre@gmail.com', role: 'Admin', avatar: null },
+        { name: 'Johanni Claassens', email: 'johanni@crystalclawz.co.za', role: 'Editor', avatar: null },
+        { name: 'Riaana Smith', email: 'riaana@example.com', role: 'Reviewer', avatar: null },
+    ];
 
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Team Members</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Manage access and roles.</p>
-                </div>
-                {isEditable && (
-                    <button className="bg-slate-900 dark:bg-white dark:text-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-800 dark:hover:bg-gray-200">
-                        <Plus size={16}/> Invite Member
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                <div className="flex justify-between items-center mb-8">
+                    <div>
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">Team & Roles</h3>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Invite team members and manage permissions.</p>
+                    </div>
+                    <button className="px-5 py-2.5 bg-pink-600 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-pink-700 transition-all shadow-lg shadow-pink-100 dark:shadow-none">
+                        <Plus size={18} /> Invite Member
                     </button>
-                )}
-            </div>
+                </div>
 
-            <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm">
-                <table className="w-full text-left text-sm">
-                    <thead className="bg-slate-50 dark:bg-gray-700 border-b border-slate-100 dark:border-gray-600 text-slate-500 dark:text-slate-300">
-                        <tr>
-                            <th className="px-6 py-4 font-medium">User</th>
-                            <th className="px-6 py-4 font-medium">Email</th>
-                            <th className="px-6 py-4 font-medium">Role</th>
-                            <th className="px-6 py-4 font-medium text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-gray-700">
-                        {users.map(u => (
-                            <tr key={u.id}>
-                                <td className="px-6 py-4 font-medium text-slate-900 dark:text-white flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center font-bold text-xs overflow-hidden">
-                                        {u.avatarUrl ? <img src={u.avatarUrl} className="w-full h-full object-cover" /> : u.name.charAt(0)}
+                <div className="space-y-2">
+                    <div className="grid grid-cols-12 gap-4 px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        <div className="col-span-5">Member</div>
+                        <div className="col-span-3">Role</div>
+                        <div className="col-span-2">Status</div>
+                        <div className="col-span-2 text-right">Actions</div>
+                    </div>
+                    <div className="divide-y divide-gray-100 dark:divide-gray-700 border border-gray-100 dark:border-gray-700 rounded-2xl overflow-hidden">
+                        {members.map((m, i) => (
+                            <div key={i} className="grid grid-cols-12 gap-4 px-4 py-4 items-center bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                                <div className="col-span-5 flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-pink-50 dark:bg-pink-900/30 flex items-center justify-center font-black text-pink-600 dark:text-pink-400">
+                                        {m.name.charAt(0)}
                                     </div>
-                                    {u.name}
-                                </td>
-                                <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{u.email}</td>
-                                <td className="px-6 py-4">
-                                    {isEditable && u.id !== currentUser.id ? (
-                                        <select 
-                                            value={u.role}
-                                            onChange={(e) => handleRoleChange(u.id, e.target.value as UserRole)}
-                                            className="bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded px-2 py-1 text-xs font-medium dark:text-white"
-                                        >
-                                            <option value="admin">Admin</option>
-                                            <option value="editor">Editor</option>
-                                            <option value="reviewer">Reviewer</option>
-                                        </select>
-                                    ) : (
-                                        <span className="bg-slate-100 dark:bg-gray-700 text-slate-600 dark:text-slate-300 px-2 py-1 rounded text-xs font-bold uppercase">{u.role}</span>
-                                    )}
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                    {isEditable && u.id !== currentUser.id && (
-                                        <button className="text-slate-400 hover:text-red-600 font-medium text-xs">Remove</button>
-                                    )}
-                                </td>
-                            </tr>
+                                    <div>
+                                        <p className="text-sm font-bold text-gray-900 dark:text-white">{m.name}</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">{m.email}</p>
+                                    </div>
+                                </div>
+                                <div className="col-span-3">
+                                    <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg w-fit">
+                                        <ShieldCheck size={12} className="text-gray-400"/>
+                                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{m.role}</span>
+                                    </div>
+                                </div>
+                                <div className="col-span-2">
+                                    <span className="text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-1.5">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                        Active
+                                    </span>
+                                </div>
+                                <div className="col-span-2 text-right">
+                                    <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg text-gray-400 transition-colors">
+                                        <Sliders size={16} />
+                                    </button>
+                                </div>
+                            </div>
                         ))}
-                    </tbody>
-                </table>
+                    </div>
+                </div>
             </div>
             
-            {!isEditable && (
-                <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 p-4 rounded-lg flex items-center gap-2 text-sm border border-amber-100 dark:border-amber-800">
-                    <Lock size={16}/> You must be an Admin to edit team roles.
+            <div className="bg-indigo-50 dark:bg-indigo-900/20 p-6 rounded-2xl border border-indigo-100 dark:border-indigo-900 flex gap-4 items-start">
+                <div className="p-2 bg-indigo-100 dark:bg-indigo-800 rounded-xl text-indigo-600 dark:text-indigo-200 shadow-sm"><Info size={20}/></div>
+                <div>
+                    <h4 className="text-sm font-bold text-indigo-900 dark:text-indigo-200">Role Permissions</h4>
+                    <p className="text-xs text-indigo-800/80 dark:text-indigo-300 leading-relaxed mt-1">Editors can create and edit content but cannot push to production. Reviewers can approve content but cannot edit. Admins have full access to all features.</p>
                 </div>
-            )}
-        </div>
-    );
-};
-
-const ModerationSettings = ({ currentUser }: { currentUser: any }) => {
-    const [config, setConfig] = useState(userService.getModerationConfig());
-    const isEditable = currentUser.role === 'admin';
-
-    const handleToggle = (key: keyof typeof config) => {
-        if (!isEditable) return;
-        const newConfig = userService.updateModerationConfig({ [key]: !config[key] });
-        setConfig({...newConfig});
-    };
-
-    return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm">
-                <div className="flex justify-between items-start mb-6">
-                    <div>
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Moderation Checklist</h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Configure what the AI checks before a post can be approved.</p>
-                    </div>
-                    <div className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
-                        <Shield size={12} /> Active
-                    </div>
-                </div>
-                
-                <div className="space-y-4">
-                    {[
-                        { key: 'checkBrandVoice', label: 'Brand Voice Compliance', desc: 'Ensures tone matches the "South African Friendly" persona.' },
-                        { key: 'checkCompliance', label: 'Regulatory Compliance', desc: 'Flags medical claims (cure, heal) or guaranteed results.' },
-                        { key: 'checkAudienceFit', label: 'Target Audience Fit', desc: 'Verifies content relevance for Nail Techs vs DIY.' },
-                        { key: 'checkMediaPresence', label: 'Media Attachment', desc: 'Prevents approval if no image/video is attached.' },
-                        { key: 'checkHashtagLimit', label: 'Hashtag Optimization', desc: 'Warns if hashtags exceed 30 or are missing.' },
-                    ].map((item) => (
-                        <div key={item.key} className={`flex items-center justify-between p-4 border dark:border-gray-700 rounded-xl ${isEditable ? 'hover:bg-slate-50 dark:hover:bg-gray-700' : 'opacity-75'}`}>
-                            <div>
-                                <h4 className="font-bold text-slate-900 dark:text-white text-sm">{item.label}</h4>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">{item.desc}</p>
-                            </div>
-                            <div
-                                onClick={() => handleToggle(item.key as any)}
-                                className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors ${config[item.key as keyof typeof config] ? 'bg-green-500 dark:bg-green-500' : 'bg-slate-300 dark:bg-gray-600'}`}
-                            >
-                                <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${config[item.key as keyof typeof config] ? 'translate-x-6' : ''}`} />
-                            </div>
-                        </div>
-                    ))}
-                </div>
-                
-                {!isEditable && (
-                    <div className="mt-6 text-xs text-slate-400 text-center">
-                        Only Admins can modify moderation rules.
-                    </div>
-                )}
             </div>
         </div>
     );
 };
 
 const ConnectionsSettings = () => {
-    const [isDrivePickerOpen, setIsDrivePickerOpen] = useState(false);
-    const [importStatus, setImportStatus] = useState<'idle' | 'success'>('idle');
-    const [importedCount, setImportedCount] = useState(0);
-
-    const platforms = [
-        { name: 'Instagram', icon: <Instagram size={20} />, status: 'Connected', handle: '@crystalclawz', color: 'text-pink-600' },
-        { name: 'Facebook', icon: <Facebook size={20} />, status: 'Disconnected', handle: '', color: 'text-blue-600' },
-        { name: 'TikTok', icon: <span className="font-bold text-lg">Tk</span>, status: 'Connected', handle: '@crystalclawz', color: 'text-black dark:text-white' },
-        { name: 'YouTube', icon: <Youtube size={20} />, status: 'Disconnected', handle: '', color: 'text-red-600' },
-        { name: 'YouTube Shorts', icon: <Youtube size={20} />, status: 'Disconnected', handle: '', color: 'text-red-600' },
+    const channels = [
+        { platform: Platform.Instagram, status: 'Connected', account: '@crystalclawz_sa', icon: Instagram, color: 'text-pink-600' },
+        { platform: Platform.Facebook, status: 'Connected', account: 'Crystal Clawz SA', icon: Facebook, color: 'text-blue-600' },
+        { platform: Platform.TikTok, status: 'Expired', account: '@crystalclawz', icon: Cloud, color: 'text-gray-900 dark:text-white' },
+        { platform: Platform.YouTube, status: 'Disconnected', account: null, icon: Youtube, color: 'text-red-600' },
     ];
 
-    const categorizeImport = (file: MockFile): MediaAsset => {
-        const name = file.name.toLowerCase();
-        let folderPath = 'Google Drive Imports';
-        let tags = ['drive-import', file.type];
-
-        if (name.includes('summer') || name.includes('beach') || name.includes('pool')) {
-            folderPath = 'Google Drive Imports/Summer Campaign 2025';
-            tags.push('summer-2025');
-        } else if (name.includes('cat') || name.includes('eye')) {
-            folderPath = 'Products/Cat Eye';
-            tags.push('cat-eye');
-        } else if (name.includes('influencer') || name.includes('sarah')) {
-            folderPath = 'Google Drive Imports/Influencer Drops';
-            tags.push('influencer');
-        }
-
-        return {
-            id: `gd_${Date.now()}_${file.id}`,
-            filename: file.name,
-            fileType: file.type === 'video' ? 'video' : 'image',
-            folderPath,
-            stage: 'Raw',
-            url: file.thumbnail || '', 
-            createdAt: new Date().toISOString(),
-            tags,
-            permissions: { status: 'not_needed' },
-            status: 'draft'
-        };
-    };
-
-    const handleDriveImport = (files: MockFile[]) => {
-        const assets = files.map(categorizeImport);
-        addManyAssets(assets);
-        setImportedCount(assets.length);
-        setImportStatus('success');
-        setTimeout(() => setImportStatus('idle'), 4000);
-    };
-
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm">
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Content Sources</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Connect cloud storage to auto-import assets.</p>
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 border border-slate-100 dark:border-gray-700 rounded-xl bg-slate-50 dark:bg-gray-700">
-                        <div className="flex items-center gap-4">
-                            <div className="p-2 bg-white dark:bg-gray-600 rounded-full shadow-sm">
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" className="w-5 h-5" alt="Drive" />
-                            </div>
-                            <div>
-                                <h4 className="text-sm font-bold text-slate-900 dark:text-white">Google Drive</h4>
-                                <p className="text-xs text-green-600 dark:text-green-400 font-medium flex items-center gap-1">
-                                    <Check size={10} /> Connected
-                                </p>
-                            </div>
-                        </div>
-                        <button 
-                            onClick={() => setIsDrivePickerOpen(true)}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors flex items-center gap-2"
-                        >
-                            <Cloud size={14} /> Import Files
-                        </button>
-                    </div>
-                </div>
-                {importStatus === 'success' && (
-                    <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-sm rounded-lg flex items-center gap-2 animate-in slide-in-from-top-2">
-                        <CheckCircle size={16} />
-                        Successfully imported {importedCount} assets. Check your Library folders!
-                    </div>
-                )}
-             </div>
-             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm">
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Platform Connections</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Manage your social media accounts and permissions.</p>
-                <div className="space-y-4">
-                    {platforms.map(p => (
-                        <div key={p.name} className="flex items-center justify-between p-4 border border-slate-100 dark:border-gray-700 rounded-xl bg-slate-50 dark:bg-gray-700">
-                            <div className="flex items-center gap-4">
-                                <div className={`p-2 bg-white dark:bg-gray-600 rounded-full shadow-sm ${p.color}`}>{p.icon}</div>
-                                <div>
-                                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">{p.name}</h4>
-                                    {p.status === 'Connected' ? (
-                                        <p className="text-xs text-green-600 dark:text-green-400 font-medium flex items-center gap-1">
-                                            <Check size={10} /> Connected as {p.handle}
-                                        </p>
-                                    ) : (
-                                        <p className="text-xs text-slate-400">Not connected</p>
-                                    )}
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Channel Connections</h3>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-8">Manage integrations for auto-publishing and social listening.</p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {channels.map((c, i) => (
+                        <div key={i} className="p-6 bg-gray-50 dark:bg-gray-900/30 rounded-2xl border border-gray-100 dark:border-gray-800 hover:shadow-md transition-all group">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className={`p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 group-hover:scale-110 transition-transform ${c.color}`}>
+                                    <c.icon size={24}/>
+                                </div>
+                                <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                    c.status === 'Connected' ? 'bg-emerald-100 text-emerald-700' : 
+                                    c.status === 'Expired' ? 'bg-amber-100 text-amber-700' : 'bg-gray-200 text-gray-500'
+                                }`}>
+                                    {c.status}
                                 </div>
                             </div>
-                            <button className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
-                                p.status === 'Connected' 
-                                ? 'bg-white dark:bg-gray-600 border border-slate-200 dark:border-gray-500 text-slate-600 dark:text-slate-200 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200' 
-                                : 'bg-slate-900 dark:bg-white dark:text-slate-900 text-white hover:bg-slate-800 dark:hover:bg-gray-200'
-                            }`}>
-                                {p.status === 'Connected' ? 'Disconnect' : 'Connect'}
-                            </button>
+                            <h4 className="font-bold text-gray-900 dark:text-white">{c.platform}</h4>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{c.account || 'No account linked'}</p>
+                            
+                            <div className="mt-6">
+                                {c.status === 'Disconnected' ? (
+                                    <button className="w-full py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-xs font-bold">Connect Channel</button>
+                                ) : (
+                                    <button className="w-full py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-800">
+                                        {c.status === 'Expired' ? 'Reconnect' : 'Settings'}
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     ))}
                 </div>
             </div>
-            <GoogleDrivePicker isOpen={isDrivePickerOpen} onClose={() => setIsDrivePickerOpen(false)} onImport={handleDriveImport}/>
+            
+            <div className="p-8 bg-gray-900 rounded-3xl text-white flex justify-between items-center overflow-hidden relative">
+                <div className="absolute top-0 right-0 p-4 opacity-10"><Database size={100}/></div>
+                <div className="relative z-10">
+                    <h4 className="text-lg font-bold">External Storage (n8n)</h4>
+                    <p className="text-xs text-gray-400 mt-1">Webhook for scheduled post delivery.</p>
+                    <div className="mt-4 flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                        <span className="text-xs font-mono text-emerald-400">https://n8n.crystalclawz.co.za/social-api</span>
+                    </div>
+                </div>
+                <button className="relative z-10 p-3 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors">
+                    <Sliders size={20}/>
+                </button>
+            </div>
         </div>
     );
 };
 
 const BrandSettings = () => (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm">
-            <div className="flex justify-between items-start mb-6">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Brand Voice Profile</h3>
+            
+            <div className="space-y-6">
                 <div>
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Brand Voice Capsule</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Configure how Crystal Core sounds.</p>
+                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Tone of Voice</label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {['Supportive', 'Hype', 'Playful', 'Professional', 'Educational', 'Premium'].map(t => (
+                            <button key={t} className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl text-xs font-bold text-gray-700 dark:text-gray-300 hover:border-pink-300 transition-all flex items-center gap-2">
+                                <Check size={14} className="text-emerald-500" /> {t}
+                            </button>
+                        ))}
+                        <button className="px-4 py-3 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl text-xs font-bold text-gray-400 hover:text-pink-600 hover:border-pink-300 transition-all">
+                            + Custom
+                        </button>
+                    </div>
                 </div>
-                <div className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
-                    <Check size={12} /> Active
+                
+                <CCTextArea 
+                    label="Brand Summary for AI" 
+                    rows={4}
+                    defaultValue="Crystal Clawz is the leading South African brand for professional nail technicians. We focus on high-quality products without gatekeeping knowledge. Our voice is energetic, like a 'Work Bestie'. We use emojis and South African colloquialisms where appropriate (baddies, slay, glow-up)."
+                />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <CCTextField label="Target Audience" defaultValue="Nail Technicians in South Africa" />
+                    <div>
+                        <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Visual DNA</label>
+                        <div className="flex gap-2">
+                            <button className="w-10 h-10 rounded-full bg-pink-600 border-4 border-white dark:border-gray-800 shadow-sm" />
+                            <button className="w-10 h-10 rounded-full bg-gray-900 border-4 border-white dark:border-gray-800 shadow-sm" />
+                            <button className="w-10 h-10 rounded-full bg-purple-600 border-4 border-white dark:border-gray-800 shadow-sm" />
+                            <button className="w-10 h-10 rounded-full bg-white border-2 border-gray-200 dark:border-gray-700 shadow-sm" />
+                            <button className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-pink-600 transition-colors"><Palette size={20}/></button>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div className="space-y-4">
-                <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tone</label>
-                    <select className="w-full p-2 border border-slate-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-pink-500 focus:outline-none">
-                        <option>South African Friendly (Default)</option>
-                        <option>Professional & Formal</option>
-                        <option>Hype & Energetic</option>
-                    </select>
-                </div>
-                <div>
-                    <CCTextArea label="Disallowed Words" defaultValue="miracle, cure, guaranteed, cheap, nasty" className="h-24"/>
-                    <p className="text-xs text-slate-400 mt-1">Comma separated list of words the AI should avoid.</p>
-                </div>
-                <div>
-                    <CCTextField label="Custom Signature" defaultValue="Stay pressed and blessed 💅"/>
-                </div>
-            </div>
-             <div className="mt-6 flex justify-end gap-2">
-                <button className="bg-white dark:bg-gray-700 border border-slate-200 dark:border-gray-600 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-gray-600">Test Voice</button>
-                <button className="bg-pink-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-pink-700">Save Changes</button>
+            
+            <div className="mt-10 pt-8 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+                <button className="px-8 py-3 bg-pink-600 text-white rounded-2xl font-black shadow-xl shadow-pink-100 dark:shadow-none hover:bg-pink-700 transition-all">Save Brand Voice</button>
             </div>
         </div>
     </div>
 );
 
-const ReportsSettings: React.FC<{ initialParams?: any, initialAction?: string, initialTemplate?: string, onNavigate: (view: ViewState, params?: any) => void }> = ({ initialParams, initialAction, initialTemplate, onNavigate }) => {
-    // Placeholder to keep file compilable
-    return <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm"><p className="text-slate-500 dark:text-slate-400">Reports Configuration (Unchanged)</p></div>;
+const ModerationSettings = () => {
+    const [config, setConfig] = useState<ModerationConfig>(userService.getModerationConfig());
+    
+    return (
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Guardrails & Moderation</h3>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-8">Configure AI safety checks and compliance standards.</p>
+                
+                <div className="space-y-4">
+                    <div className="p-5 bg-gray-50 dark:bg-gray-900/30 rounded-2xl border border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="p-2 bg-pink-100 dark:bg-pink-900/40 text-pink-600 dark:text-pink-400 rounded-xl"><Zap size={20}/></div>
+                            <div>
+                                <h4 className="text-sm font-bold text-gray-900 dark:text-white">Strict Tone Enforcement</h4>
+                                <p className="text-xs text-gray-500">AI will flag content that deviates from Brand Voice.</p>
+                            </div>
+                        </div>
+                        <CCCheckbox checked={config.checkBrandVoice} onChange={(val) => setConfig({...config, checkBrandVoice: val})} />
+                    </div>
+
+                    <div className="p-5 bg-gray-50 dark:bg-gray-900/30 rounded-2xl border border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="p-2 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded-xl"><ShieldCheck size={20}/></div>
+                            <div>
+                                <h4 className="text-sm font-bold text-gray-900 dark:text-white">Medical Claims Shield</h4>
+                                <p className="text-xs text-gray-500">Auto-flag words like "cure", "heal", or health promises.</p>
+                            </div>
+                        </div>
+                        <CCCheckbox checked={config.checkCompliance} onChange={(val) => setConfig({...config, checkCompliance: val})} />
+                    </div>
+
+                    <div className="p-5 bg-gray-50 dark:bg-gray-900/30 rounded-2xl border border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="p-2 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl"><ImageIcon size={20}/></div>
+                            <div>
+                                <h4 className="text-sm font-bold text-gray-900 dark:text-white">Media Validation</h4>
+                                <p className="text-xs text-gray-500">Require media attachments for all Feed and Reel posts.</p>
+                            </div>
+                        </div>
+                        <CCCheckbox checked={config.checkMediaPresence} onChange={(val) => setConfig({...config, checkMediaPresence: val})} />
+                    </div>
+
+                    <div className="p-5 bg-gray-50 dark:bg-gray-900/30 rounded-2xl border border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="p-2 bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 rounded-xl"><Sliders size={20}/></div>
+                            <div>
+                                <h4 className="text-sm font-bold text-gray-900 dark:text-white">Hashtag Limits</h4>
+                                <p className="text-xs text-gray-500">Enforce maximum 30 hashtags as per platform best practices.</p>
+                            </div>
+                        </div>
+                        <CCCheckbox checked={config.checkHashtagLimit} onChange={(val) => setConfig({...config, checkHashtagLimit: val})} />
+                    </div>
+                </div>
+                
+                <div className="mt-10 pt-8 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-4">
+                    <button className="px-6 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl font-bold">Restore Defaults</button>
+                    <button className="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-bold shadow-lg">Save Guardrails</button>
+                </div>
+            </div>
+        </div>
+    );
 };
 
-const HistorySettings = () => <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm"><p className="text-slate-500 dark:text-slate-400">History Placeholder</p></div>;
-const LogsSettings = () => <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm"><p className="text-slate-500 dark:text-slate-400">Logs Placeholder</p></div>;
+const ReportsSettings = () => {
+    const savedReports = [
+        { name: 'Weekly Performance Overview', nextRun: 'Monday 9:00 AM', status: 'Active' },
+        { name: 'Monthly Stock vs Content Mapping', nextRun: '1st of Month', status: 'Paused' },
+        { name: 'Influencer Reach Report', nextRun: 'Every Friday', status: 'Active' },
+    ];
+
+    return (
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                <div className="flex justify-between items-center mb-8">
+                    <div>
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">Scheduled Reports</h3>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Automated analytics delivered to your team.</p>
+                    </div>
+                    <button className="p-3 bg-pink-50 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 rounded-xl hover:bg-pink-100 transition-colors shadow-sm">
+                        <Plus size={20} />
+                    </button>
+                </div>
+
+                <div className="space-y-4">
+                    {savedReports.map((r, i) => (
+                        <div key={i} className="flex items-center justify-between p-5 bg-gray-50 dark:bg-gray-900/30 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-pink-200 transition-all cursor-pointer group">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-white dark:bg-gray-800 rounded-xl text-blue-500 shadow-sm border border-gray-100 dark:border-gray-700 group-hover:bg-blue-50 transition-colors"><BarChart size={20}/></div>
+                                <div>
+                                    <h4 className="text-sm font-bold text-gray-900 dark:text-white">{r.name}</h4>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase mt-1">Next: {r.nextRun}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-6">
+                                <span className={`text-[10px] font-black uppercase tracking-widest ${r.status === 'Active' ? 'text-emerald-600' : 'text-gray-400'}`}>{r.status}</span>
+                                <ChevronRight size={18} className="text-gray-300 group-hover:text-pink-600 group-hover:translate-x-1 transition-all" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            
+            <div className="bg-gradient-to-br from-indigo-600 to-blue-700 p-8 rounded-3xl text-white shadow-xl shadow-indigo-200 dark:shadow-none relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-10 rotate-12"><Sparkles size={120}/></div>
+                <div className="max-w-md relative z-10">
+                    <h4 className="text-xl font-black">AI Custom Reporting</h4>
+                    <p className="text-sm text-indigo-100 mt-2 leading-relaxed font-medium">Need a specific data cutout? Chat with our Reports AI to generate custom visualization and insight packs instantly.</p>
+                    <button className="mt-6 px-6 py-3 bg-white text-indigo-700 rounded-2xl font-black text-sm hover:scale-[1.05] transition-transform shadow-lg">
+                        Open Reports Chat
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const HistorySettings = () => {
+    const activities = [
+        { action: 'Post Published', details: 'Riaana Leaf Art set live on Instagram', time: '10 mins ago', user: 'System' },
+        { action: 'Draft Created', details: 'New "Summer Glow" Reel draft', time: '2 hours ago', user: 'Johanni' },
+        { action: 'Team Invite', details: 'Invitation sent to Riaana Smith', time: '5 hours ago', user: 'Andre' },
+        { action: 'Connection Updated', details: 'Facebook Token Refreshed', time: 'Yesterday', user: 'Andre' },
+    ];
+
+    return (
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Activity History</h3>
+                <div className="relative">
+                    <div className="absolute top-0 left-5 bottom-0 w-px bg-gray-100 dark:bg-gray-700" />
+                    <div className="space-y-10">
+                        {activities.map((a, i) => (
+                            <div key={i} className="relative pl-12">
+                                <div className="absolute left-3.5 top-1.5 w-3 h-3 rounded-full bg-pink-600 border-2 border-white dark:border-gray-800 shadow-sm" />
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{a.time} • By {a.user}</p>
+                                <h4 className="text-sm font-bold text-gray-900 dark:text-white mt-1">{a.action}</h4>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{a.details}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <button className="mt-12 w-full py-3 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 text-xs font-bold text-gray-500 hover:text-pink-600 transition-colors rounded-xl">
+                    Load Full History
+                </button>
+            </div>
+        </div>
+    );
+};
+
+const LogsSettings = () => {
+    const logs = [
+        '[INFO] [2025-01-29 10:25:01] - Auth initialized for user esellerandre@gmail.com',
+        '[WARN] [2025-01-29 10:20:45] - TikTok API token expiring in 48 hours',
+        '[SUCCESS] [2025-01-29 09:15:22] - Generated image variant gen_4251_A',
+        '[ERROR] [2025-01-29 08:30:11] - Veo operation timed out after 5 minutes',
+        '[INFO] [2025-01-28 23:59:59] - Daily cleanup worker completed',
+    ];
+
+    return (
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">System Logs</h3>
+                    <div className="flex gap-2">
+                        <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-400"><Download size={18}/></button>
+                        <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-400"><RefreshCw size={18}/></button>
+                    </div>
+                </div>
+                
+                <div className="bg-gray-900 dark:bg-black rounded-2xl p-6 font-mono text-[11px] leading-relaxed overflow-x-auto max-h-[500px]">
+                    {logs.map((log, i) => {
+                        const isError = log.includes('[ERROR]');
+                        const isWarn = log.includes('[WARN]');
+                        return (
+                            <div key={i} className={`mb-1 whitespace-nowrap ${isError ? 'text-red-400' : i === 1 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                {log}
+                            </div>
+                        );
+                    })}
+                    <div className="mt-4 text-gray-600 animate-pulse">_</div>
+                </div>
+                
+                <div className="mt-8 flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-2xl border border-gray-100 dark:border-gray-800">
+                    <div className="p-2 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl"><Globe size={20}/></div>
+                    <div>
+                        <h4 className="text-sm font-bold text-gray-900 dark:text-white">Technical Support</h4>
+                        <p className="text-xs text-gray-500">Having technical issues? Send these logs to support@crystalclawz.co.za</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export default Settings;

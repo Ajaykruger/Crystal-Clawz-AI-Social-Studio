@@ -55,6 +55,14 @@ let savedReports: ReportDefinition[] = [
         scope: { platforms: [Platform.Instagram, Platform.Facebook], dateRange: 'last_7_days' },
         createdAt: '2025-01-20T10:00:00',
         lastRunAt: '2025-01-26T09:00:00'
+    },
+    {
+        id: 'rep_002',
+        name: 'Workflow Efficiency',
+        templateId: 'workflow_overview',
+        scope: { platforms: [Platform.Instagram, Platform.TikTok], dateRange: 'last_30_days' },
+        createdAt: '2025-01-15T14:30:00',
+        lastRunAt: '2025-01-28T11:00:00'
     }
 ];
 
@@ -131,10 +139,12 @@ const generateMockResults = (templateId: string): ReportRun['results'] => {
                 kpis: [
                     { label: 'Highest Reach', value: '18.2k', change: '+5%', trend: 'up' },
                     { label: 'Top Engagement', value: '12%', change: '+2%', trend: 'up' },
+                    { label: 'Avg Shares', value: '450', change: '+12%', trend: 'up' },
                 ],
                 insights: [
                     'Your tutorial Reel from Tuesday has the highest engagement (12%).',
                     'Posts with "Cat Eye" in the caption are converting 2x better.',
+                    'Direct links in bio are 40% more effective than comments-led CTA.'
                 ],
                 recommendations: [
                     { label: 'Boost the top performing Reel to extend reach.', action: { view: 'dashboard' } },
@@ -167,15 +177,15 @@ const generateMockResults = (templateId: string): ReportRun['results'] => {
                 recommendations: [
                     {
                         label: 'Post 2 more Reels next week to capitalize on reach.',
-                        action: { view: 'calendar', params: { tab: 'plan' } }
+                        action: { view: 'calendar' }
                     },
                     {
                         label: 'Reschedule evening posts to 7 PM.',
-                        action: { view: 'calendar', params: { tab: 'schedule' } }
+                        action: { view: 'calendar' }
                     },
                     {
                         label: 'Engage with comments within the first hour.',
-                        action: { view: 'dashboard' }
+                        action: { view: 'social-suite' }
                     }
                 ],
                 tables: [
@@ -227,7 +237,9 @@ const generateMockResults = (templateId: string): ReportRun['results'] => {
                     {
                         label: 'Maintain current cadence.',
                     }
-                ]
+                ],
+                // Fix: Added missing 'tables' property
+                tables: []
             };
     }
 }

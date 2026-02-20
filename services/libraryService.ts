@@ -175,8 +175,10 @@ export const INITIAL_FOLDERS: Folder[] = [
     path: 'Google Drive Imports',
     locked: false,
     subfolders: [
-        { id: 'f_gd_summer', name: 'Summer Campaign 2025', path: 'Google Drive Imports/Summer Campaign 2025', subfolders: [] },
-        { id: 'f_gd_influencer', name: 'Influencer Drops', path: 'Google Drive Imports/Influencer Drops', subfolders: [] },
+        // Fix: Added missing 'locked' property
+        { id: 'f_gd_summer', name: 'Summer Campaign 2025', path: 'Google Drive Imports/Summer Campaign 2025', subfolders: [], locked: false },
+        // Fix: Added missing 'locked' property
+        { id: 'f_gd_influencer', name: 'Influencer Drops', path: 'Google Drive Imports/Influencer Drops', subfolders: [], locked: false },
     ]
   },
   {
@@ -192,10 +194,14 @@ export const INITIAL_FOLDERS: Folder[] = [
     path: 'Brand Assets',
     locked: true,
     subfolders: [
-      { id: 'f_brand_logo', name: 'Logos', path: 'Brand Assets/Logos', subfolders: [] },
-      { id: 'f_brand_font', name: 'Fonts', path: 'Brand Assets/Fonts', subfolders: [] },
-      { id: 'f_brand_colors', name: 'Colours & Backgrounds', path: 'Brand Assets/Colours & Backgrounds', subfolders: [] },
-      { id: 'f_brand_templates', name: 'Templates', path: 'Brand Assets/Templates', subfolders: [] },
+      // Fix: Added missing 'locked' property
+      { id: 'f_brand_logo', name: 'Logos', path: 'Brand Assets/Logos', subfolders: [], locked: false },
+      // Fix: Added missing 'locked' property
+      { id: 'f_brand_font', name: 'Fonts', path: 'Brand Assets/Fonts', subfolders: [], locked: false },
+      // Fix: Added missing 'locked' property
+      { id: 'f_brand_colors', name: 'Colours & Backgrounds', path: 'Brand Assets/Colours & Backgrounds', subfolders: [], locked: false },
+      // Fix: Added missing 'locked' property
+      { id: 'f_brand_templates', name: 'Templates', path: 'Brand Assets/Templates', subfolders: [], locked: false },
     ]
   },
   {
@@ -204,11 +210,16 @@ export const INITIAL_FOLDERS: Folder[] = [
     path: 'Products',
     locked: false,
     subfolders: [
-      { id: 'f_prod_rubber', name: 'Rubber Base', path: 'Products/Rubber Base', subfolders: [] },
-      { id: 'f_prod_builder', name: 'Builder Gel', path: 'Products/Builder Gel', subfolders: [] },
-      { id: 'f_prod_polish', name: 'Gel Polish', path: 'Products/Gel Polish', subfolders: [] },
-      { id: 'f_prod_cateye', name: 'Cat Eye', path: 'Products/Cat Eye', subfolders: [] },
-      { id: 'f_prod_tools', name: 'Bits & Tools', path: 'Products/Bits & Tools', subfolders: [] },
+      // Fix: Added missing 'locked' property
+      { id: 'f_prod_rubber', name: 'Rubber Base', path: 'Products/Rubber Base', subfolders: [], locked: false },
+      // Fix: Added missing 'locked' property
+      { id: 'f_prod_builder', name: 'Builder Gel', path: 'Products/Builder Gel', subfolders: [], locked: false },
+      // Fix: Added missing 'locked' property
+      { id: 'f_prod_polish', name: 'Gel Polish', path: 'Products/Gel Polish', subfolders: [], locked: false },
+      // Fix: Added missing 'locked' property
+      { id: 'f_prod_cateye', name: 'Cat Eye', path: 'Products/Cat Eye', subfolders: [], locked: false },
+      // Fix: Added missing 'locked' property
+      { id: 'f_prod_tools', name: 'Bits & Tools', path: 'Products/Bits & Tools', subfolders: [], locked: false },
     ]
   },
   {
@@ -217,8 +228,10 @@ export const INITIAL_FOLDERS: Folder[] = [
     path: 'Campaigns',
     locked: false,
     subfolders: [
-      { id: 'f_camp_bf25', name: 'Black Friday 2025', path: 'Campaigns/Black Friday 2025', subfolders: [] },
-      { id: 'f_camp_xmas25', name: 'Christmas 2025', path: 'Campaigns/Christmas 2025', subfolders: [] },
+      // Fix: Added missing 'locked' property
+      { id: 'f_camp_bf25', name: 'Black Friday 2025', path: 'Campaigns/Black Friday 2025', subfolders: [], locked: false },
+      // Fix: Added missing 'locked' property
+      { id: 'f_camp_xmas25', name: 'Christmas 2025', path: 'Campaigns/Christmas 2025', subfolders: [], locked: false },
     ]
   },
   {
@@ -234,8 +247,10 @@ export const INITIAL_FOLDERS: Folder[] = [
     path: 'Community (UGC)',
     locked: false,
     subfolders: [
-        { id: 'f_ugc_amb', name: 'Ambassadors', path: 'Community (UGC)/Ambassadors', subfolders: [] },
-        { id: 'f_ugc_clients', name: 'Client Sets', path: 'Community (UGC)/Client Sets', subfolders: [] },
+        // Fix: Added missing 'locked' property
+        { id: 'f_ugc_amb', name: 'Ambassadors', path: 'Community (UGC)/Ambassadors', subfolders: [], locked: false },
+        // Fix: Added missing 'locked' property
+        { id: 'f_ugc_clients', name: 'Client Sets', path: 'Community (UGC)/Client Sets', subfolders: [], locked: false },
     ]
   },
   {
@@ -244,8 +259,10 @@ export const INITIAL_FOLDERS: Folder[] = [
     path: 'Content Ready',
     locked: false,
     subfolders: [
-        { id: 'f_content_sched', name: 'Scheduled', path: 'Content Ready/Scheduled', subfolders: [] },
-        { id: 'f_content_posted', name: 'Posted', path: 'Content Ready/Posted', subfolders: [] },
+        // Fix: Added missing 'locked' property
+        { id: 'f_content_sched', name: 'Scheduled', path: 'Content Ready/Scheduled', subfolders: [], locked: false },
+        // Fix: Added missing 'locked' property
+        { id: 'f_content_posted', name: 'Posted', path: 'Content Ready/Posted', subfolders: [], locked: false },
     ]
   },
   {

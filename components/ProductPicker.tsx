@@ -128,7 +128,8 @@ const ProductPicker: React.FC<ProductPickerProps> = ({ isOpen, onClose, onSelect
                                 placeholder="0.00"
                                 type="number"
                                 value={customProduct.price}
-                                onChange={e => setCustomProduct({...customProduct, price: e.target.value})}
+                                // Fix: Convert string input value to number to satisfy Product type requirements
+                                onChange={e => setCustomProduct({...customProduct, price: e.target.value === '' ? undefined : Number(e.target.value)})}
                                 micEnabled={false}
                             />
                             <CCTextField 

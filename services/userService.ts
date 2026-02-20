@@ -1,14 +1,14 @@
 
 import { User, UserRole, ModerationConfig } from '../types';
+import { auth } from './firebaseService';
 
-// Mock User Data
-const MOCK_USERS: User[] = [
-  { id: 'u1', name: 'Jenn', email: 'jenn@crystalclawz.co.za', role: 'admin', avatarUrl: '' },
-  { id: 'u2', name: 'Sarah Editor', email: 'sarah@crystalclawz.co.za', role: 'editor', avatarUrl: '' },
-  { id: 'u3', name: 'Mike Reviewer', email: 'mike@crystalclawz.co.za', role: 'reviewer', avatarUrl: '' }
-];
-
-let currentUser: User = MOCK_USERS[0]; // Default to Admin for demo
+let currentUser: User = { 
+    id: 'guest', 
+    name: 'Guest', 
+    email: '', 
+    role: 'reviewer', 
+    avatarUrl: '' 
+};
 
 // Mock Global Config
 let moderationConfig: ModerationConfig = {
@@ -22,26 +22,25 @@ let moderationConfig: ModerationConfig = {
 export const userService = {
   getCurrentUser: () => currentUser,
   
-  switchUser: (userId: string) => {
-      const u = MOCK_USERS.find(user => user.id === userId);
-      if (u) currentUser = u;
+  syncWithFirebase: (firebaseUser: any) => {
+      if (!firebaseUser) {
+          currentUser = { id: 'guest', name: 'Guest', email: '', role: 'reviewer', avatarUrl: '' };
+          return currentUser;
+      }
+      
+      currentUser = {
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName || 'User',
+          email: firebaseUser.email || '',
+          role: 'admin', // Defaulting to admin for the primary account holder
+          avatarUrl: firebaseUser.photoURL || ''
+      };
       return currentUser;
   },
 
   updateCurrentUser: (updates: Partial<User>) => {
       currentUser = { ...currentUser, ...updates };
-      const index = MOCK_USERS.findIndex(u => u.id === currentUser.id);
-      if (index !== -1) {
-          MOCK_USERS[index] = currentUser;
-      }
       return { ...currentUser };
-  },
-
-  getAllUsers: () => MOCK_USERS,
-
-  updateUserRole: (userId: string, role: UserRole) => {
-      const u = MOCK_USERS.find(user => user.id === userId);
-      if (u) u.role = role;
   },
 
   canApprove: () => {
@@ -57,5 +56,7 @@ export const userService = {
   updateModerationConfig: (config: Partial<ModerationConfig>) => {
       moderationConfig = { ...moderationConfig, ...config };
       return moderationConfig;
-  }
+  },
+
+  getAllUsers: () => [currentUser] // For now, only show the synced user
 };

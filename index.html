@@ -12,10 +12,9 @@
         theme: {
           extend: {
             colors: {
-              // Extending pink for specific brand shades if needed
               pink: {
-                450: '#f472b6', // Between 400 and 500
-                950: '#4c0519', // Deep pink
+                450: '#f472b6',
+                950: '#4c0519',
               }
             },
             fontFamily: {
@@ -27,7 +26,6 @@
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Tailwind Custom Utilities -->
     <style type="text/tailwindcss">
       @layer components {
         .btn-primary {
@@ -49,10 +47,9 @@
     </style>
 
     <style>
-      body { font-family: 'Inter', sans-serif; background-color: #f9fafb; /* gray-50 */ }
-      .dark body { background-color: #111827; /* gray-900 */ color: #f3f4f6; }
+      body { font-family: 'Inter', sans-serif; background-color: #f9fafb; }
+      .dark body { background-color: #111827; color: #f3f4f6; }
       
-      /* Glassmorphism Utilities */
       .glass {
         background: rgba(255, 255, 255, 0.85);
         backdrop-filter: blur(12px);
@@ -88,7 +85,6 @@
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
       }
 
-      /* Custom scrollbar for cleaner look */
       ::-webkit-scrollbar { width: 6px; height: 6px; }
       ::-webkit-scrollbar-track { background: transparent; }
       ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
@@ -104,12 +100,21 @@
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "@google/genai": "https://esm.sh/@google/genai@^1.37.0",
     "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "recharts": "https://esm.sh/recharts@^3.6.0"
+    "recharts": "https://esm.sh/recharts@^3.6.0",
+    "firebase/app": "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js",
+    "firebase/auth": "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js",
+    "firebase/storage": "https://www.gstatic.com/firebasejs/11.1.0/firebase-storage.js",
+    "firebase/": "https://esm.sh/firebase@^12.9.0/",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "path": "https://esm.sh/path@^0.12.7",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.4"
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
   <body>
     <div id="root"></div>
-  </body>
+  <script type="module" src="/index.tsx"></script>
+</body>
 </html>

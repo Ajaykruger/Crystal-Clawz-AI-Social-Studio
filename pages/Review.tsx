@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { ReviewPost, Platform, PostFormat, PostStatus, ModerationResult } from '../types';
 import { 
@@ -6,7 +5,7 @@ import {
   ChevronDown, ChevronRight, AlertTriangle, AlertCircle, Edit2, 
   Trash2, Copy, Eye, Zap, Sparkles, CheckCircle, X, Maximize2, 
   MessageSquare, Sliders, Layout, Facebook, Instagram, Youtube, Image as ImageIcon, BarChart, Shield,
-  PenTool, ExternalLink
+  PenTool, ExternalLink, Loader2
 } from 'lucide-react';
 import { CCTextArea, CCTextField } from '../components/ui/Inputs';
 import { CCTooltip } from '../components/ui/Tooltip';
@@ -177,7 +176,7 @@ const Review: React.FC<ReviewProps> = ({ posts: externalPosts, onBack, onFinish,
               setActivePlatformTab(post.platforms[0]);
           }
       }
-  }, [selectedId, posts]);
+  }, [selectedId]);
 
   const selectedPost = useMemo(() => posts.find(p => p.id === selectedId), [posts, selectedId]);
 
@@ -202,18 +201,26 @@ const Review: React.FC<ReviewProps> = ({ posts: externalPosts, onBack, onFinish,
       if (selectedId) handleUpdateStatus(selectedId, 'APPROVED');
   };
 
+  const handleApproveAll = () => {
+      if (!canApprove) return;
+      setPosts(posts.map(p => p.status === 'IN_REVIEW' ? { ...p, status: 'APPROVED' } : p));
+  };
+
   const handleNeedsFix = () => {
       if (selectedId) handleUpdateStatus(selectedId, 'NEEDS_FIX');
   };
 
   const handleEditInStudio = () => {
       if (selectedPost && onNavigate) {
-          // Map ReviewPost to Create/Draft params format
+          // Map ReviewPost to navigation params to prefill the Create/Workbench view
           onNavigate('create', { sourcePost: { 
+              id: selectedPost.id,
               title: selectedPost.title, 
               platform: activePlatformTab || selectedPost.platforms[0],
               caption: selectedPost.caption,
-              thumbnail: selectedPost.media[0]?.url
+              thumbnail: selectedPost.media[0]?.url,
+              cta: selectedPost.cta,
+              format: selectedPost.format
           }});
       }
   };
@@ -229,6 +236,14 @@ const Review: React.FC<ReviewProps> = ({ posts: externalPosts, onBack, onFinish,
              <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full text-xs font-bold">{posts.length}</span>
           </div>
           <div className="flex items-center gap-3">
+             {canApprove && posts.some(p => p.status === 'IN_REVIEW') && (
+                 <button 
+                    onClick={handleApproveAll}
+                    className="px-4 py-2 bg-pink-50 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300 rounded-lg text-sm font-bold border border-pink-100 dark:border-pink-800 flex items-center gap-2"
+                 >
+                    <CheckCircle size={16}/> Approve All Pending
+                 </button>
+             )}
              <button 
                 onClick={() => onFinish && onFinish('calendar')}
                 className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"

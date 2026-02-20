@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 import { ProductBrief, MarketingAngle, VideoBlueprint, CaptionVariant } from "../types";
-import { executeWithGemini, getApiKey } from "./geminiService";
+import { executeWithGemini } from "./geminiService";
 
 const CRYSTAL_CLAWZ_ENGINE_PROMPT = `
 You are the content engine for Crystal Clawz, the go-to brand for South African nail techs.
@@ -44,7 +44,9 @@ export const contentEngineService = {
           }
         }
       });
-      return JSON.parse(response.text || "{}");
+      // GUIDELINE: Use .text property and clean potentially wrapped markdown JSON
+      const jsonStr = (response.text || "{}").replace(/```json\n?|```/g, "").trim();
+      return JSON.parse(jsonStr);
     });
   },
 
@@ -77,7 +79,8 @@ export const contentEngineService = {
           }
         }
       });
-      return JSON.parse(response.text || "[]");
+      const jsonStr = (response.text || "[]").replace(/```json\n?|```/g, "").trim();
+      return JSON.parse(jsonStr);
     });
   },
 
@@ -145,7 +148,8 @@ export const contentEngineService = {
           }
         }
       });
-      return JSON.parse(response.text || "[]");
+      const jsonStr = (response.text || "[]").replace(/```json\n?|```/g, "").trim();
+      return JSON.parse(jsonStr);
     });
   },
 
@@ -173,7 +177,8 @@ export const contentEngineService = {
           }
         }
       });
-      return JSON.parse(response.text || "[]");
+      const jsonStr = (response.text || "[]").replace(/```json\n?|```/g, "").trim();
+      return JSON.parse(jsonStr);
     });
   },
 
@@ -193,18 +198,15 @@ export const contentEngineService = {
       model = "veo-3.1-fast-generate-preview",
     } = params;
 
-    // Inject visual style into video prompt
     const styledPrompt = `
       ${prompt}.
       Style: Professional, high-end beauty commercial, bright lighting, sharp focus on nails.
       Aesthetic: Glam, Crystal Clawz brand style.
     `;
 
-    // Video generation uses a long polling loop, so we manage the AI instance manually
-    // and read the key fresh via getApiKey() at the start of the call.
-    const ai = new GoogleGenAI({ apiKey: getApiKey() });
+    // GUIDELINE: Always use process.env.API_KEY directly in initialization
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-    // 1) Start async operation
     let operation: any = await ai.models.generateVideos({
       model,
       prompt: styledPrompt,
@@ -215,42 +217,32 @@ export const contentEngineService = {
       } as any,
     });
 
-    // 2) Poll until done (Veo is async)
     while (!operation.done) {
-      await new Promise((r) => setTimeout(r, 2000));
-      operation = await ai.operations.getVideosOperation({ operation });
+      await new Promise((r) => setTimeout(r, 5000));
+      operation = await ai.operations.getVideosOperation({ operation: operation });
     }
 
-    // 3) Extract the video
     const generated = operation?.response?.generatedVideos?.[0];
     const video = generated?.video;
 
-    // A) videoBytes available
     if (video?.videoBytes) {
       const mimeType = video?.mimeType || "video/mp4";
       return { mimeType, dataUrl: `data:${mimeType};base64,${video.videoBytes}` };
     }
 
-    // B) URI available (REST-style); fetch it with API key
     if (video?.uri) {
-      const downloadLink = video.uri;
-      const res = await fetch(`${downloadLink}&key=${getApiKey()}`);
+      // GUIDELINE: Append API key from process.env.API_KEY when fetching from download link
+      const res = await fetch(`${video.uri}&key=${process.env.API_KEY}`);
       if (!res.ok) throw new Error(`Video download failed (${res.status})`);
-
       const blob = await res.blob();
       const arrayBuffer = await blob.arrayBuffer();
-
-      // Browser-safe base64 conversion
       let binary = '';
       const bytes = new Uint8Array(arrayBuffer);
-      const len = bytes.byteLength;
-      for (let i = 0; i < len; i++) {
+      for (let i = 0; i < bytes.byteLength; i++) {
         binary += String.fromCharCode(bytes[i]);
       }
-      const base64 = btoa(binary);
-
       const mimeType = blob.type || "video/mp4";
-      return { mimeType, dataUrl: `data:${mimeType};base64,${base64}` };
+      return { mimeType, dataUrl: `data:${mimeType};base64,${btoa(binary)}` };
     }
 
     throw new Error("Video generated but no bytes/uri returned (check Veo access / billing)");
